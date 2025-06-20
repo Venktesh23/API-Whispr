@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { FileText, MessageCircle, Trash2, Download, Clock, File, Calendar, MessageSquare, User, Upload, LogOut } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { AuthGuard } from '@/components/AuthGuard'
+import AuthGuard from '../../components/AuthGuard'
 import { Loader2 } from 'lucide-react'
 import { useSupabase } from '../../hooks/useSupabase'
 
