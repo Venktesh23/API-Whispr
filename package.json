@@ -1,0 +1,37 @@
+{
+  "name": "api-whisper",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.0",
+    "@types/react-syntax-highlighter": "^15.5.13",
+    "formidable": "^3.5.4",
+    "framer-motion": "^10.18.0",
+    "html2pdf.js": "^0.10.3",
+    "js-yaml": "^4.1.0",
+    "lucide-react": "^0.292.0",
+    "mermaid": "^11.6.0",
+    "next": "14.0.0",
+    "openai": "^4.20.0",
+    "pdf-parse": "^1.1.1",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-syntax-highlighter": "^15.6.1",
+    "recharts": "^2.15.3",
+    "swagger-parser": "^10.0.3",
+    "yaml": "^2.3.4"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10",
+    "eslint": "^8",
+    "eslint-config-next": "14.0.0",
+    "postcss": "^8",
+    "tailwindcss": "^3.3.0"
+  }
+}
