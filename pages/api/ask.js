@@ -1,11 +1,13 @@
-import OpenAI from 'openai'
 import { createClient } from '@supabase/supabase-js'
+import { callGemini } from '../../lib/gemini'
 import { retrieveRelevantChunks } from '../../lib/embeddings'
-import { formatCurlSnippet, formatPythonSnippet, formatJavaScriptSnippet } from '../../utils/formatSnippets'
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+import {
+  validators,
+  validateRequest,
+  errorResponse,
+  logError,
+  trackApiUsage,
+} from '../../lib/api-utils'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -38,60 +40,57 @@ export default async function handler(req, res) {
 
   const { question, spec, specType, specId, userId } = req.body
 
-  if (!question) {
-    return res.status(400).json({ error: 'Question is required' })
+  // Validate inputs
+  const validationErrors = validateRequest(
+    { question, userId },
+    {
+      question: validators.question,
+      userId: userId ? validators.userId : () => null,
+    }
+  )
+
+  if (validationErrors) {
+    return errorResponse(res, 'Validation failed', 400, validationErrors)
   }
+
+  // Set headers for streaming response
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection', 'keep-alive')
+  res.setHeader('X-Accel-Buffering', 'no')
 
   try {
     let systemPrompt = SYSTEM_PROMPT
     let userPrompt = ''
     let usingRAG = false
 
-    // Determine context building strategy
     if (specId && userId) {
-      // TRY RAG retrieval first
-      console.log('🔍 Attempting RAG retrieval for specId:', specId)
-      
       try {
-        const relevantChunks = await retrieveRelevantChunks(
-          supabase,
-          question,
-          specId,
-          8 // topK = 8
-        )
+        const relevantChunks = await retrieveRelevantChunks(supabase, question, specId, 8)
 
         if (relevantChunks && relevantChunks.length > 0) {
-          // Successfully retrieved chunks via RAG
-          console.log(`✅ RAG successful: Retrieved ${relevantChunks.length} relevant chunks`)
-          
           const chunksContext = relevantChunks
             .map((chunk, idx) => `[Chunk ${idx + 1}]\n${chunk}`)
             .join('\n---\n')
 
-          userPrompt = `Here are the most relevant parts of the API specification for your question:
-
-${chunksContext}
-
----
-
-Question: ${question}
-
-Please answer the question based on the provided specification chunks. If the answer requires information not in the chunks, mention that.`
-
+          userPrompt = `Here are the most relevant parts of the API specification for your question:\n\n${chunksContext}\n\n---\n\nQuestion: ${question}\n\nPlease answer the question based on the provided specification chunks. If the answer requires information not in the chunks, mention that.`
           usingRAG = true
         } else {
-          // No chunks found - fall back to raw spec
-          console.warn('⚠️ RAG retrieval found no chunks, falling back to raw spec')
           userPrompt = buildRawSpecContext(spec, question)
         }
       } catch (ragError) {
-        // RAG retrieval failed - fall back to raw spec
-        console.error('⚠️ RAG retrieval failed:', ragError.message)
-        console.log('   Falling back to raw spec content')
+        console.error('RAG retrieval failed:', ragError.message)
+        await logError({
+          errorType: 'RAG_RETRIEVAL_ERROR',
+          message: ragError.message,
+          code: 200,
+          endpoint: '/api/ask',
+          userId,
+          severity: 'warning',
+        })
         userPrompt = buildRawSpecContext(spec, question)
       }
     } else if (!spec || !specType || specType === 'general') {
-      // General conversation without API spec
       systemPrompt = `You are a helpful AI assistant specializing in APIs, software development, and technical questions. You can help with:
 - General API development questions
 - Programming concepts and best practices
@@ -100,94 +99,81 @@ Please answer the question based on the provided specification chunks. If the an
 - Web development guidance
 
 Provide clear, practical answers and code examples when relevant. Be concise but thorough.`
-
       userPrompt = question
     } else if (specType === 'pdf') {
       systemPrompt = `You are an expert API documentation assistant. You help developers understand API documentation by answering questions clearly and providing practical examples.
 
-The user has uploaded PDF documentation. Based on the extracted text, answer their questions about the API. Provide:
-1. Clear, direct answers
-2. Relevant code examples when applicable (cURL, JavaScript, Python)
-3. Parameter details and requirements
-4. Authentication information if mentioned
-5. Endpoint URLs and methods
-6. Error handling information
+The user has uploaded PDF documentation. Based on the extracted text, answer their questions about the API. Provide practical guidance.`
 
-Be concise but thorough. Format code blocks properly. If information is not available in the documentation, say so clearly.`
-
-      userPrompt = `API Documentation:
-${spec.substring(0, 4000)}${spec.length > 4000 ? '...\n[Note: Spec truncated for context window]' : ''}
-
-Question: ${question}`
+      userPrompt = `API Documentation:\n${spec.substring(0, 4000)}${spec.length > 4000 ? '...\n[Note: Spec truncated for context window]' : ''}\n\nQuestion: ${question}`
     } else {
-      // OpenAPI spec context
-      userPrompt = `OpenAPI Specification:
-${typeof spec === 'string' ? spec.substring(0, 4000) : JSON.stringify(spec, null, 2).substring(0, 4000)}${(typeof spec === 'string' ? spec.length : JSON.stringify(spec).length) > 4000 ? '...\n[Note: Spec truncated for context window]' : ''}
-
-Question: ${question}
-
-Please analyze the specification and provide a helpful answer with relevant details and examples.`
+      userPrompt = buildRawSpecContext(spec, question)
     }
 
-    // Set headers for streaming response
-    res.setHeader('Content-Type', 'text/event-stream')
-    res.setHeader('Cache-Control', 'no-cache')
-    res.setHeader('Connection', 'keep-alive')
-    res.setHeader('Access-Control-Allow-Origin', '*')
-
-    // Send RAG indicator if applicable
     if (usingRAG) {
       res.write(`data: ${JSON.stringify({ ragEnabled: true, chunkCount: 8 })}\n\n`)
     }
 
-    const stream = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt,
-        },
-        {
-          role: 'user',
-          content: userPrompt,
-        },
-      ],
-      max_tokens: 1200,
+    // Call Gemini
+    const fullText = await callGemini(systemPrompt, userPrompt, {
       temperature: 0.3,
-      stream: true,
+      maxOutputTokens: 1200,
     })
 
-    // Send chunks as they arrive from OpenAI
-    for await (const chunk of stream) {
-      const content = chunk.choices[0]?.delta?.content || ''
-      if (content) {
-        res.write(`data: ${JSON.stringify({ text: content })}\n\n`)
-      }
-    }
+    // Track API usage
+    const questionTokens = userPrompt.split(' ').length
+    const responseTokens = fullText.split(' ').length
+    await trackApiUsage({
+      userId: userId || 'anonymous',
+      model: 'gemini-2.0-flash',
+      endpoint: '/api/ask',
+      inputTokens: questionTokens,
+      outputTokens: responseTokens,
+    })
 
-    // Send completion signal
+    // Stream response with real delays (proper streaming)
+    await streamResponse(res, fullText)
+
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`)
     res.end()
   } catch (error) {
-    console.error('OpenAI API error:', error)
+    console.error('Ask API error:', error)
+
+    await logError({
+      errorType: 'ASK_API_ERROR',
+      message: error.message,
+      code: 500,
+      endpoint: '/api/ask',
+      userId: req.body?.userId,
+      details: { error: error.toString() },
+    })
+
     res.write(`data: ${JSON.stringify({ error: 'Failed to process request' })}\n\n`)
     res.end()
   }
 }
 
-/**
- * Build context from raw spec content as fallback
- * Limits to ~4000 chars to avoid token overflow
- */
+// Stream response with proper delays (simulates token-by-token streaming)
+async function streamResponse(res, text) {
+  const CHUNK_SIZE = 10 // characters per chunk
+  const DELAY_MS = 20 // delay between chunks in milliseconds
+
+  for (let i = 0; i < text.length; i += CHUNK_SIZE) {
+    const chunk = text.substring(i, i + CHUNK_SIZE)
+    res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`)
+
+    // Add delay to simulate real streaming
+    if (i + CHUNK_SIZE < text.length) {
+      await new Promise((resolve) => setTimeout(resolve, DELAY_MS))
+    }
+  }
+}
+
 function buildRawSpecContext(spec, question) {
   const maxChars = 4000
-  const specContent =
-    typeof spec === 'string' ? spec : JSON.stringify(spec, null, 2)
+  const specContent = typeof spec === 'string' ? spec : JSON.stringify(spec, null, 2)
   const truncated = specContent.length > maxChars
   const specTruncated = specContent.substring(0, maxChars)
 
-  return `API Specification:
-${specTruncated}${truncated ? '\n\n[Note: Large spec - truncated for context. For better results, use the chat interface which has Smart Search enabled.]' : ''}
-
-Question: ${question}`
-} 
+  return `API Specification:\n${specTruncated}${truncated ? '\n\n[Note: Large spec - truncated for context. For better results, use the chat interface which has Smart Search enabled.]' : ''}\n\nQuestion: ${question}`
+}

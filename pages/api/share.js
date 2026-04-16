@@ -17,7 +17,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing required fields: analysisData and specId' })
     }
 
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || (!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_SERVICE_KEY)) {
       return res.status(500).json({ error: 'Supabase configuration missing' })
     }
 
@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     const token = authHeader.replace('Bearer ', '')
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
     )
 
     const { data: { user }, error: userError } = await supabase.auth.getUser(token)
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
     }
 
     const shareId = sharedAnalysis[0].id
-    const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/share/${shareId}`
+    const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000'}/share/${shareId}`
 
     console.log(`✅ Share link created: ${shareUrl}`)
 

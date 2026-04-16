@@ -115,7 +115,7 @@ export default function SharePage() {
           animate={{ opacity: 1 }}
           className="text-center"
         >
-          <Loader2 className="h-12 w-12 animate-spin text-[#00FF9C] mx-auto mb-4" />
+          <Loader2 className="h-12 w-12 animate-spin text-[#888] mx-auto mb-4" />
           <p className="text-gray-300">Loading shared analysis...</p>
         </motion.div>
       </div>
@@ -140,7 +140,7 @@ export default function SharePage() {
           )}
           <a
             href="/"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#00FF9C] text-[#0d0d0d] rounded-lg font-medium hover:bg-[#00FF9C]/90 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white text-[#0d0d0d] rounded-lg font-medium hover:bg-white/90 transition-colors"
           >
             <Home className="h-4 w-4" />
             Go Home
@@ -165,7 +165,7 @@ export default function SharePage() {
           </p>
           <a
             href="/"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#00FF9C] text-[#0d0d0d] rounded-lg font-medium hover:bg-[#00FF9C]/90 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white text-[#0d0d0d] rounded-lg font-medium hover:bg-white/90 transition-colors"
           >
             <Home className="h-4 w-4" />
             Go Home
@@ -186,8 +186,8 @@ export default function SharePage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-[#00FF9C]/10 rounded-lg border border-[#00FF9C]/30">
-                <Lock className="h-4 w-4 text-[#00FF9C]" />
+              <div className="p-2 bg-white/5 rounded-lg border border-[#444]">
+                <Lock className="h-4 w-4 text-[#888]" />
               </div>
               <div>
                 <h1 className="font-bold text-white text-sm sm:text-base">
@@ -204,7 +204,7 @@ export default function SharePage() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => copyToClipboard(window.location.href)}
-                className="flex-1 sm:flex-auto flex items-center justify-center gap-2 px-3 py-2 bg-[#00FF9C]/10 border border-[#00FF9C] text-[#00FF9C] rounded-lg text-sm font-medium hover:bg-[#00FF9C]/20 transition-all"
+                className="flex-1 sm:flex-auto flex items-center justify-center gap-2 px-3 py-2 bg-white/5 border border-[#444] text-[#ccc] rounded-lg text-sm font-medium hover:bg-white/10 transition-all"
               >
                 {copiedUrl ? (
                   <>
@@ -278,7 +278,7 @@ export default function SharePage() {
                     transition={{ duration: 1, delay: 0.5 }}
                     className={`h-full rounded-full ${
                       analysisData.healthScore.score >= 80
-                        ? 'bg-[#00FF9C]'
+                        ? 'bg-green-400'
                         : analysisData.healthScore.score >= 50
                         ? 'bg-yellow-500'
                         : 'bg-red-500'
@@ -315,8 +315,8 @@ export default function SharePage() {
                     whileTap={{ scale: 0.95 }}
                     className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
                       activeLanguage === lang
-                        ? 'bg-[#00FF9C] text-[#0d0d0d] shadow-[0_0_12px_#00FF9C]'
-                        : 'bg-[#1a1a1a] text-[#999] border border-[#2a2a2a] hover:border-[#00FF9C]/50'
+                        ? 'bg-white text-[#0d0d0d]'
+                        : 'bg-[#1a1a1a] text-[#999] border border-[#2a2a2a] hover:border-[#555]'
                     }`}
                   >
                     {lang.charAt(0).toUpperCase() + lang.slice(1)}
@@ -373,10 +373,10 @@ export default function SharePage() {
             <span className="font-semibold text-white">API-Whispr</span>
           </p>
           <a
-            href="https://github.com/yourusername/api-whispr"
+            href="https://github.com/Venktesh23/API-Whispr"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 mt-4 text-[#00FF9C] hover:text-[#00FF9C]/80 transition-colors"
+            className="inline-flex items-center gap-2 mt-4 text-[#888] hover:text-white transition-colors"
           >
             <Github className="h-4 w-4" />
             View on GitHub

@@ -27,15 +27,21 @@ export default function ApiHealthScore({ currentSpec, parsedEndpoints }) {
     setLoading(true)
     
     try {
+      const specContent = currentSpec.parsed_spec
+        ? JSON.stringify(currentSpec.parsed_spec)
+        : currentSpec.raw_text || ''
+
       const response = await fetch('/api/calculate-health-score', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          spec: currentSpec.parsed_spec,
-          endpoints: parsedEndpoints
-        })
+          specContent,
+          endpoints: parsedEndpoints,
+          filename: currentSpec.filename || 'unknown',
+          specType: currentSpec.filetype || 'unknown',
+        }),
       })
 
       if (response.ok) {
@@ -119,9 +125,9 @@ export default function ApiHealthScore({ currentSpec, parsedEndpoints }) {
   }
 
   const getScoreColor = (score) => {
-    if (score >= 70) return '#00FF9C'  // Green for good scores
-    if (score >= 40) return '#F59E0B'  // Yellow for medium scores
-    return '#EF4444'  // Red for poor scores
+    if (score >= 70) return '#4ade80'  // green-400 — semantic status: good
+    if (score >= 40) return '#F59E0B'  // amber — semantic status: warning
+    return '#EF4444'                   // red — semantic status: error
   }
 
   const getScoreGrade = (score) => {
@@ -164,7 +170,7 @@ export default function ApiHealthScore({ currentSpec, parsedEndpoints }) {
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          className="w-8 h-8 border-2 border-[#00FF9C]/30 border-t-[#00FF9C] rounded-full"
+          className="w-8 h-8 border-2 border-white/10 border-t-white rounded-full"
         />
         <span className="ml-3 text-[#999]">Calculating API health...</span>
       </div>
@@ -245,28 +251,28 @@ export default function ApiHealthScore({ currentSpec, parsedEndpoints }) {
       {healthData.details && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-[#2a2a2a]">
           <div className="text-center">
-            <div className="text-lg font-semibold text-[#00FF9C]">
+            <div className="text-lg font-semibold text-white">
               {healthData.details.totalEndpoints}
             </div>
             <div className="text-xs text-[#999]">Total Endpoints</div>
           </div>
           
           <div className="text-center">
-            <div className="text-lg font-semibold text-[#00FF9C]">
+            <div className="text-lg font-semibold text-white">
               {healthData.details.documentsWithDocs || 0}
             </div>
             <div className="text-xs text-[#999]">Documented</div>
           </div>
           
           <div className="text-center">
-            <div className="text-lg font-semibold text-[#00FF9C]">
+            <div className="text-lg font-semibold text-white">
               {healthData.details.endpointsWithAuth || 0}
             </div>
             <div className="text-xs text-[#999]">Secured</div>
           </div>
           
           <div className="text-center">
-            <div className="text-lg font-semibold text-[#00FF9C]">
+            <div className="text-lg font-semibold text-white">
               {healthData.details.endpointsWithTags || 0}
             </div>
             <div className="text-xs text-[#999]">Tagged</div>
@@ -301,7 +307,7 @@ export default function ApiHealthScore({ currentSpec, parsedEndpoints }) {
           
           {healthData.overallScore >= 80 && (
             <div className="flex items-start gap-2 text-sm text-[#e0e0e0]">
-              <CheckCircle className="h-4 w-4 text-[#00FF9C] mt-0.5 flex-shrink-0" />
+              <CheckCircle className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
               <span>Great job! Your API follows best practices</span>
             </div>
           )}

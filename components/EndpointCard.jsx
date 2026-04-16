@@ -25,10 +25,10 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 const methodColors = {
-  GET: 'bg-[#00FF9C]/10 text-[#00FF9C] border-[#00FF9C] shadow-[0_0_6px_#00FF9C]',
-  POST: 'bg-gray-700/20 text-gray-300 border-gray-600',
-  PUT: 'bg-orange-500/10 text-orange-400 border-orange-500',
-  PATCH: 'bg-purple-500/10 text-purple-400 border-purple-500',
+  GET: 'bg-white/10 text-white border-white/30',
+  POST: 'bg-[#2a2a2a] text-[#ccc] border-[#444]',
+  PUT: 'bg-yellow-500/10 text-yellow-400 border-yellow-500',
+  PATCH: 'bg-yellow-500/10 text-yellow-400 border-yellow-500',
   DELETE: 'bg-red-500/10 text-red-400 border-red-500'
 }
 
@@ -39,11 +39,11 @@ export default function EndpointCard({ endpoint, currentSpec, index = 0 }) {
 
   const getMethodColor = (method) => {
     const colors = {
-      'GET': 'bg-[#00FF9C]/10 text-[#00FF9C] border-[#00FF9C] shadow-[0_0_6px_#00FF9C]',
-      'POST': 'bg-gray-700/20 text-gray-300 border-gray-600',
-      'PUT': 'bg-orange-500/10 text-orange-400 border-orange-500',
+      'GET': 'bg-white/10 text-white border-white/30',
+      'POST': 'bg-[#2a2a2a] text-[#ccc] border-[#444]',
+      'PUT': 'bg-yellow-500/10 text-yellow-400 border-yellow-500',
       'DELETE': 'bg-red-500/10 text-red-400 border-red-500',
-      'PATCH': 'bg-purple-500/10 text-purple-400 border-purple-500'
+      'PATCH': 'bg-yellow-500/10 text-yellow-400 border-yellow-500'
     }
     return colors[method] || 'bg-[#2a2a2a] text-[#999] border-[#2a2a2a]'
   }
@@ -88,7 +88,7 @@ export default function EndpointCard({ endpoint, currentSpec, index = 0 }) {
             </span>
             
             <div className="flex-1 min-w-0">
-              <code className="text-[#00FF9C] font-mono text-sm break-all">
+              <code className="text-[#e8e8e8] font-mono text-sm break-all">
                 {endpoint.path}
               </code>
               {endpoint.summary && (
@@ -105,7 +105,7 @@ export default function EndpointCard({ endpoint, currentSpec, index = 0 }) {
                 {endpoint.tags.slice(0, 2).map((tag, i) => (
                   <span 
                     key={i}
-                    className="px-2 py-1 bg-[#00FF9C]/10 border border-[#00FF9C] text-[#00FF9C] text-xs rounded-full shadow-[0_0_4px_#00FF9C]"
+                    className="px-2 py-1 bg-white/5 border border-[#444] text-[#aaa] text-xs rounded-full"
                   >
                     {tag}
                   </span>
@@ -160,7 +160,7 @@ export default function EndpointCard({ endpoint, currentSpec, index = 0 }) {
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <code className="text-[#00FF9C] font-mono text-sm">
+                            <code className="text-[#e8e8e8] font-mono text-sm">
                               {param.name}
                             </code>
                             {param.required && (
@@ -193,7 +193,7 @@ export default function EndpointCard({ endpoint, currentSpec, index = 0 }) {
                   <h4 className="text-sm font-medium text-white mb-3">Request Body</h4>
                   <div className="p-3 bg-[#151515] border border-[#2a2a2a] rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[#00FF9C] text-sm font-medium">JSON</span>
+                      <span className="text-[#aaa] text-sm font-medium">JSON</span>
                       {endpoint.requestBody.required && (
                         <span className="text-red-400 text-xs font-medium">required</span>
                       )}
@@ -219,7 +219,7 @@ export default function EndpointCard({ endpoint, currentSpec, index = 0 }) {
                       >
                         <div className="flex items-center gap-3">
                           <span className={`px-2 py-1 text-xs font-semibold rounded ${
-                            statusCode.startsWith('2') ? 'bg-[#00FF9C]/10 text-[#00FF9C] border border-[#00FF9C]' :
+                            statusCode.startsWith('2') ? 'bg-green-400/10 text-green-400 border border-green-400' :
                             statusCode.startsWith('4') ? 'bg-orange-500/10 text-orange-400 border border-orange-500' :
                             statusCode.startsWith('5') ? 'bg-red-500/10 text-red-400 border border-red-500' :
                             'bg-[#2a2a2a] text-[#999] border border-[#2a2a2a]'
@@ -242,7 +242,7 @@ export default function EndpointCard({ endpoint, currentSpec, index = 0 }) {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => copyToClipboard(generateCurlCommand(), `curl-${index}`)}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#00FF9C]/10 border border-[#00FF9C] text-[#00FF9C] rounded-lg transition-all duration-300 text-sm font-medium hover:bg-[#00FF9C]/20 shadow-[0_0_6px_#00FF9C]"
+                  className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-[#444] text-[#ccc] rounded-lg transition-all duration-300 text-sm font-medium hover:bg-white/10"
                 >
                   {copiedCode === `curl-${index}` ? (
                     <>
@@ -270,7 +270,7 @@ export default function EndpointCard({ endpoint, currentSpec, index = 0 }) {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setShowTestModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white rounded-lg transition-all duration-300 text-sm font-medium"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#2a2a2a] border border-[#444] hover:bg-[#333] text-white rounded-lg transition-all duration-300 text-sm font-medium"
                 >
                   <Zap className="h-4 w-4" />
                   Generate Tests

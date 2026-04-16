@@ -171,13 +171,13 @@ export default function AutoTagEndpoints({ endpoint, currentSpec, onTagApplied }
   }
 
   return (
-    <div className="mt-4 p-4 bg-purple-500/10 border border-purple-400/30 rounded-lg">
+    <div className="mt-4 p-4 bg-white/5 border border-[#2a2a2a] rounded-lg">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Tag className="h-4 w-4 text-purple-400" />
+          <Tag className="h-4 w-4 text-[#888]" />
           <div>
-            <h4 className="font-medium text-purple-200">Missing Tag</h4>
-            <p className="text-purple-200/80 text-sm">This endpoint doesn't have any tags for organization</p>
+            <h4 className="font-medium text-[#ccc]">Missing Tag</h4>
+            <p className="text-[#888] text-sm">This endpoint doesn't have any tags for organization</p>
           </div>
         </div>
 
@@ -187,7 +187,7 @@ export default function AutoTagEndpoints({ endpoint, currentSpec, onTagApplied }
             whileTap={{ scale: 0.95 }}
             onClick={generateTagSuggestion}
             disabled={isGenerating}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 border border-purple-400/30 text-purple-300 rounded-lg transition-all duration-200 font-medium disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-[#444] text-[#ccc] rounded-lg transition-all duration-200 font-medium disabled:opacity-50 hover:bg-white/10"
           >
             {isGenerating ? (
               <>
@@ -210,13 +210,13 @@ export default function AutoTagEndpoints({ endpoint, currentSpec, onTagApplied }
             >
               <div className="text-right">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-medium text-purple-200">"{suggestedTag.tag}"</span>
+                  <span className="font-medium text-[#e8e8e8]">"{suggestedTag.tag}"</span>
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${getConfidenceBadge(suggestedTag.confidence)}`}>
                     {suggestedTag.confidence} confidence
                   </span>
                 </div>
                 {suggestedTag.reasoning && (
-                  <p className="text-purple-200/70 text-xs max-w-xs">
+                  <p className="text-[#888] text-xs max-w-xs">
                     {suggestedTag.reasoning}
                   </p>
                 )}
@@ -227,7 +227,7 @@ export default function AutoTagEndpoints({ endpoint, currentSpec, onTagApplied }
                 whileTap={{ scale: 0.95 }}
                 onClick={applyTag}
                 disabled={isApplying}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 disabled:opacity-50 text-white rounded-lg transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
+                className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-white/90 disabled:opacity-50 text-[#0d0d0d] rounded-lg transition-all duration-200 font-medium"
               >
                 {isApplying ? (
                   <>
@@ -250,9 +250,9 @@ export default function AutoTagEndpoints({ endpoint, currentSpec, onTagApplied }
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
-          className="mt-3 pt-3 border-t border-purple-400/20"
+          className="mt-3 pt-3 border-t border-[#2a2a2a]"
         >
-          <div className="flex items-center gap-2 text-sm text-purple-200/80">
+          <div className="flex items-center gap-2 text-sm text-[#888]">
             <Zap className="h-3 w-3" />
             <span>AI analyzed the endpoint path and description to suggest this tag</span>
           </div>

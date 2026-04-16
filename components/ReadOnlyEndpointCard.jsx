@@ -12,14 +12,14 @@ import {
 export default function ReadOnlyEndpointCard({ endpoint, index }) {
   const getMethodColor = (method) => {
     switch (method) {
-      case 'GET': return 'text-blue-400 bg-blue-500/10'
-      case 'POST': return 'text-green-400 bg-green-500/10'
+      case 'GET': return 'text-white bg-white/10'
+      case 'POST': return 'text-[#ccc] bg-[#2a2a2a]'
       case 'PUT': return 'text-yellow-400 bg-yellow-500/10'
-      case 'PATCH': return 'text-purple-400 bg-purple-500/10'
+      case 'PATCH': return 'text-yellow-400 bg-yellow-500/10'
       case 'DELETE': return 'text-red-400 bg-red-500/10'
-      case 'HEAD': return 'text-gray-400 bg-gray-500/10'
-      case 'OPTIONS': return 'text-cyan-400 bg-cyan-500/10'
-      default: return 'text-gray-400 bg-gray-500/10'
+      case 'HEAD': return 'text-[#888] bg-[#2a2a2a]'
+      case 'OPTIONS': return 'text-[#888] bg-[#2a2a2a]'
+      default: return 'text-[#888] bg-[#2a2a2a]'
     }
   }
 
@@ -28,14 +28,14 @@ export default function ReadOnlyEndpointCard({ endpoint, index }) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      className="p-5 bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg hover:border-[#00FF9C]/30 transition-all"
+      className="p-5 bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg hover:border-[#444] transition-all"
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3 flex-1">
           <span className={`px-3 py-1 rounded font-mono font-bold text-sm ${getMethodColor(endpoint.method)}`}>
             {endpoint.method}
           </span>
-          <code className="text-[#00FF9C] font-mono text-sm break-all">
+          <code className="text-[#e8e8e8] font-mono text-sm break-all">
             {endpoint.path}
           </code>
         </div>
@@ -52,7 +52,7 @@ export default function ReadOnlyEndpointCard({ endpoint, index }) {
           {endpoint.tags.map((tag, idx) => (
             <span
               key={idx}
-              className="inline-flex items-center gap-1 px-2 py-1 bg-[#00FF9C]/10 border border-[#00FF9C]/30 text-[#00FF9C] rounded text-xs font-medium"
+              className="inline-flex items-center gap-1 px-2 py-1 bg-white/5 border border-[#444] text-[#aaa] rounded text-xs font-medium"
             >
               <Tag className="h-3 w-3" />
               {tag}

@@ -50,17 +50,17 @@ export default function VisualSummaryChart({ data }) {
 
   const getMethodColor = (method) => {
     const colors = {
-      'GET': '#00FF9C',
-      'POST': '#34D399', 
-      'PUT': '#10B981',
-      'DELETE': '#059669',
-      'PATCH': '#047857'
+      'GET': '#ffffff',
+      'POST': '#9ca3af',
+      'PUT': '#F59E0B',
+      'DELETE': '#EF4444',
+      'PATCH': '#F59E0B'
     }
-    return colors[method] || '#00FF9C'
+    return colors[method] || '#9ca3af'
   }
 
   const getStatusColor = (code) => {
-    if (code.startsWith('2')) return '#00FF9C'
+    if (code.startsWith('2')) return '#4ade80'
     if (code.startsWith('4')) return '#F59E0B'
     if (code.startsWith('5')) return '#EF4444'
     return '#6B7280'
@@ -82,8 +82,8 @@ export default function VisualSummaryChart({ data }) {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Total Endpoints */}
-        <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-6 text-center hover:bg-[#1f1f1f] transition-colors shadow-[0_0_10px_#00FF9C20]">
-          <Hash className="h-6 w-6 text-[#00FF9C] mx-auto mb-3" />
+        <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-6 text-center hover:bg-[#1f1f1f] transition-colors transition-colors">
+          <Hash className="h-6 w-6 text-[#888] mx-auto mb-3" />
           <div className="text-2xl font-semibold text-white mb-1">
             {data.totalEndpoints || 0}
           </div>
@@ -93,8 +93,8 @@ export default function VisualSummaryChart({ data }) {
         </div>
 
         {/* HTTP Methods */}
-        <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-6 text-center hover:bg-[#1f1f1f] transition-colors shadow-[0_0_10px_#00FF9C20]">
-          <Activity className="h-6 w-6 text-[#00FF9C] mx-auto mb-3" />
+        <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-6 text-center hover:bg-[#1f1f1f] transition-colors transition-colors">
+          <Activity className="h-6 w-6 text-[#888] mx-auto mb-3" />
           <div className="text-2xl font-semibold text-white mb-1">
             {Object.keys(data.methodsCount || {}).length}
           </div>
@@ -104,8 +104,8 @@ export default function VisualSummaryChart({ data }) {
         </div>
 
         {/* Status Codes */}
-        <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-6 text-center hover:bg-[#1f1f1f] transition-colors shadow-[0_0_10px_#00FF9C20]">
-          <CheckCircle className="h-6 w-6 text-[#00FF9C] mx-auto mb-3" />
+        <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-6 text-center hover:bg-[#1f1f1f] transition-colors transition-colors">
+          <CheckCircle className="h-6 w-6 text-[#888] mx-auto mb-3" />
           <div className="text-2xl font-semibold text-white mb-1">
             {data.commonStatusCodes?.length || 0}
           </div>
@@ -115,8 +115,8 @@ export default function VisualSummaryChart({ data }) {
         </div>
 
         {/* Tags */}
-        <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-6 text-center hover:bg-[#1f1f1f] transition-colors shadow-[0_0_10px_#00FF9C20]">
-          <Tag className="h-6 w-6 text-[#00FF9C] mx-auto mb-3" />
+        <div className="bg-gradient-to-br from-[#1a1a1a] to-[#151515] border border-[#2a2a2a] rounded-lg p-6 text-center hover:bg-[#1f1f1f] transition-colors transition-colors">
+          <Tag className="h-6 w-6 text-[#888] mx-auto mb-3" />
           <div className="text-2xl font-semibold text-white mb-1">
             {data.topTags?.length || 0}
           </div>
@@ -145,7 +145,7 @@ export default function VisualSummaryChart({ data }) {
                     color: '#e0e0e0'
                   }} 
                 />
-                <Bar dataKey="count" fill="#00FF9C" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="count" fill="#ffffff" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -191,7 +191,7 @@ export default function VisualSummaryChart({ data }) {
             {data.topTags.map((tag, index) => (
               <span
                 key={index}
-                className="px-3 py-1 bg-[#00FF9C]/10 border border-[#00FF9C] text-[#00FF9C] rounded-full text-sm font-medium hover:bg-[#00FF9C]/20 transition-colors shadow-[0_0_6px_#00FF9C]"
+                className="px-3 py-1 bg-white/5 border border-[#444] text-[#aaa] rounded-full text-sm font-medium hover:bg-white/10 transition-colors"
               >
                 #{tag}
               </span>

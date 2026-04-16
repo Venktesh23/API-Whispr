@@ -25,14 +25,14 @@ export default function ChatPage() {
   const [currentSpec, setCurrentSpec] = useState(null)
   const [specs, setSpecs] = useState([])
   const messagesEndRef = useRef(null)
-  
+
   const router = useRouter()
   const searchParams = useSearchParams()
   const specId = searchParams.get('spec')
-  const { user, supabase } = useSupabase()
+  const { user } = useSupabase()
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
   useEffect(() => {
@@ -50,54 +50,65 @@ export default function ChatPage() {
   }, [user, specId])
 
   const loadUserSpecs = async () => {
-    const { data, error } = await supabase
-      .from('api_specs')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-    
-    if (!error && data) {
-      setSpecs(data)
+    try {
+      const response = await fetch(
+        `/api/chat?action=loadSpecs&userId=${user.id}`
+      )
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load specs')
+      }
+
+      setSpecs(data.data?.specs || [])
+    } catch (error) {
+      console.error('Error loading specs:', error)
     }
   }
 
   const loadSpec = async (id) => {
-    const { data, error } = await supabase
-      .from('api_specs')
-      .select('*')
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .single()
-    
-    if (!error && data) {
-      setCurrentSpec(data)
+    try {
+      const response = await fetch(
+        `/api/chat?action=loadSpec&userId=${user.id}&specId=${id}`
+      )
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load spec')
+      }
+
+      setCurrentSpec(data.data?.spec)
+    } catch (error) {
+      console.error('Error loading spec:', error)
     }
   }
 
   const loadChatHistory = async (id) => {
-    const { data, error } = await supabase
-      .from('chat_history')
-      .select('*')
-      .eq('spec_id', id)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: true })
-    
-    if (!error && data) {
-      const formattedMessages = data.flatMap(chat => [
-        { role: 'user', content: chat.question, timestamp: chat.created_at },
-        { role: 'assistant', content: chat.answer, timestamp: chat.created_at }
-      ])
-      setMessages(formattedMessages)
+    try {
+      const response = await fetch(
+        `/api/chat?action=loadChatHistory&userId=${user.id}&specId=${id}`
+      )
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load chat history')
+      }
+
+      setMessages(data.data?.messages || [])
+    } catch (error) {
+      console.error('Error loading chat history:', error)
     }
   }
 
   const sendMessage = async () => {
     if (!currentMessage.trim() || !currentSpec || isLoading) return
-    
+
     const userMessage = currentMessage
     setCurrentMessage('')
-    setMessages(prev => [...prev, { role: 'user', content: userMessage, timestamp: new Date().toISOString() }])
-    
+    setMessages((prev) => [
+      ...prev,
+      { role: 'user', content: userMessage, timestamp: new Date().toISOString() },
+    ])
     // Add empty assistant message that will be populated by stream
     const assistantTimestamp = new Date().toISOString()
     const emptyAssistantMessage = { role: 'assistant', content: '', timestamp: assistantTimestamp, streaming: true }
@@ -381,7 +392,7 @@ export default function ChatPage() {
                               ul: ({...props}) => <ul className="list-disc list-inside mb-2 space-y-1" {...props} />,
                               ol: ({...props}) => <ol className="list-decimal list-inside mb-2 space-y-1" {...props} />,
                               li: ({...props}) => <li className="ml-2" {...props} />,
-                              a: ({...props}) => <a className="text-blue-400 hover:text-blue-300 underline" {...props} />,
+                              a: ({...props}) => <a className="text-[#ccc] hover:text-white underline" {...props} />,
                               blockquote: ({...props}) => <blockquote className="border-l-4 border-gray-500 pl-4 italic mb-2" {...props} />,
                               table: ({...props}) => <table className="border-collapse border border-gray-600 mb-2 text-sm" {...props} />,
                               thead: ({...props}) => <thead className="bg-gray-700/30" {...props} />,

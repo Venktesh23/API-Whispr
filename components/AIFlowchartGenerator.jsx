@@ -125,7 +125,7 @@ function MermaidChart({ chart }) {
     <div className="relative">
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900/50 rounded-lg z-10">
-          <Loader2 className="h-8 w-8 text-cyan-400 animate-spin" />
+          <Loader2 className="h-8 w-8 text-[#888] animate-spin" />
         </div>
       )}
       <div 
@@ -426,7 +426,7 @@ export default function AIFlowchartGenerator({ currentSpec }) {
         whileTap={{ scale: 0.98 }}
         onClick={generateFlowchart}
         disabled={isGenerating}
-        className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#00FF9C]/10 border border-[#00FF9C] text-[#00FF9C] rounded-lg transition-all duration-300 font-medium hover:bg-[#00FF9C]/20 shadow-[0_0_10px_#00FF9C] disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-white hover:bg-white/90 text-[#0d0d0d] rounded-lg transition-all duration-300 font-medium disabled:opacity-50"
       >
         {isGenerating ? (
           <>
@@ -451,7 +451,7 @@ export default function AIFlowchartGenerator({ currentSpec }) {
         >
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium text-white flex items-center gap-2">
-              <Workflow className="h-5 w-5 text-[#00FF9C]" />
+              <Workflow className="h-5 w-5 text-[#888]" />
               {generatedDiagram.title}
               {generatedDiagram.warning && (
                 <span className="px-2 py-1 bg-yellow-500/10 border border-yellow-500 text-yellow-400 rounded text-xs">
@@ -504,11 +504,11 @@ export default function AIFlowchartGenerator({ currentSpec }) {
           {/* Code Display */}
           <div className="space-y-2">
             <h4 className="text-sm font-medium text-white flex items-center gap-2">
-              <FileCode className="h-4 w-4 text-[#00FF9C]" />
+              <FileCode className="h-4 w-4 text-[#888]" />
               Mermaid Code
             </h4>
             <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg p-4 overflow-x-auto">
-              <pre className="text-sm text-[#00FF9C] font-mono">
+              <pre className="text-sm text-[#e8e8e8] font-mono">
                 {generatedDiagram.mermaid}
               </pre>
             </div>

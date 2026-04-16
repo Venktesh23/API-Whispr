@@ -1,3 +1,5 @@
+import { callGemini } from '../../lib/gemini'
+
 const REQUEST_BUILDER_PROMPT = `You are an expert API request builder. Given a user's intent in plain English and an OpenAPI specification, you must:
 
 1. Identify the most relevant endpoint that matches the user's intent
@@ -56,70 +58,33 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing required fields: intent and spec' })
     }
 
-    if (!process.env.OPENAI_API_KEY) {
-      return res.status(500).json({ error: 'OpenAI API key not configured' })
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ error: 'GEMINI_API_KEY not configured' })
     }
 
-    console.log(`🔨 Building request for intent: "${intent}"`)
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: REQUEST_BUILDER_PROMPT,
-          },
-          {
-            role: 'user',
-            content: `User intent: "${intent}"
+    const userPrompt = `User intent: "${intent}"
 
 OpenAPI Spec:
 ${typeof spec === 'string' ? spec : JSON.stringify(spec, null, 2)}
 
-Analyze the spec, find the most relevant endpoint, and return the request object.`,
-          },
-        ],
-        temperature: 0.3,
-        max_tokens: 2000,
-      }),
+Analyze the spec, find the most relevant endpoint, and return the request object.`
+
+    const result = await callGemini(REQUEST_BUILDER_PROMPT, userPrompt, {
+      temperature: 0.3,
+      maxOutputTokens: 2000,
     })
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('OpenAI API error:', errorText)
-      throw new Error(`OpenAI API error: ${response.status}`)
-    }
-
-    const data = await response.json()
-    const result = data.choices[0]?.message?.content
-
-    if (!result) {
-      throw new Error('No result from OpenAI')
-    }
 
     let requestData
     try {
-      requestData = JSON.parse(result)
-    } catch (parseError) {
-      console.error('JSON parse failed:', parseError)
-      requestData = {
-        found: false,
-        message: 'Error parsing API response. Please try again.',
-      }
+      const cleaned = result.replace(/^```json\s*/i, '').replace(/\s*```$/, '').trim()
+      requestData = JSON.parse(cleaned)
+    } catch {
+      requestData = { found: false, message: 'Error parsing API response. Please try again.' }
     }
 
-    console.log('✅ Request built successfully')
     return res.status(200).json(requestData)
   } catch (error) {
     console.error('💥 Request builder error:', error)
-    return res.status(500).json({
-      error: 'Failed to build request'
-    })
+    return res.status(500).json({ error: 'Failed to build request' })
   }
 }

@@ -88,7 +88,7 @@ export default function RequestBuilderResult({ request, onClose }) {
             <h3 className="text-lg font-semibold text-white">
               {request.method} {request.path}
             </h3>
-            <p className="text-[#00FF9C] font-mono text-sm mt-1">{request.url}</p>
+            <p className="text-[#aaa] font-mono text-sm mt-1">{request.url}</p>
           </div>
         </div>
         {request.summary && (
@@ -112,7 +112,7 @@ export default function RequestBuilderResult({ request, onClose }) {
               <div className="space-y-2">
                 {Object.entries(request.pathParams).map(([key, param]) => (
                   <div key={key} className="flex items-center gap-3">
-                    <code className="text-[#00FF9C] font-mono text-sm flex-1">{key}</code>
+                    <code className="text-[#e8e8e8] font-mono text-sm flex-1">{key}</code>
                     <span className="text-gray-400 text-xs bg-[#1a1a1a] px-2 py-1 rounded">
                       {param.type}
                     </span>
@@ -130,7 +130,7 @@ export default function RequestBuilderResult({ request, onClose }) {
               <div className="space-y-2">
                 {Object.entries(request.queryParams).map(([key, param]) => (
                   <div key={key} className="flex items-center gap-3">
-                    <code className="text-[#00FF9C] font-mono text-sm flex-1">{key}</code>
+                    <code className="text-[#e8e8e8] font-mono text-sm flex-1">{key}</code>
                     <span className="text-gray-400 text-xs bg-[#1a1a1a] px-2 py-1 rounded">
                       {param.type}
                     </span>
@@ -157,14 +157,14 @@ export default function RequestBuilderResult({ request, onClose }) {
       <div>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <Terminal className="h-4 w-4 text-[#00FF9C]" />
+            <Terminal className="h-4 w-4 text-[#888]" />
             <h4 className="text-sm font-semibold text-white">cURL Command</h4>
           </div>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => copyToClipboard(curlCommand, 'curl')}
-            className="flex items-center gap-2 px-3 py-1 bg-[#00FF9C]/10 border border-[#00FF9C] text-[#00FF9C] rounded-lg text-sm hover:bg-[#00FF9C]/20 transition-all"
+            className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-[#444] text-[#ccc] rounded-lg text-sm hover:bg-white/10 transition-all"
           >
             {copied === 'curl' ? (
               <>
@@ -188,14 +188,14 @@ export default function RequestBuilderResult({ request, onClose }) {
       <div>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <Code2 className="h-4 w-4 text-[#00FF9C]" />
+            <Code2 className="h-4 w-4 text-[#888]" />
             <h4 className="text-sm font-semibold text-white">JavaScript Fetch</h4>
           </div>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => copyToClipboard(fetchCommand, 'fetch')}
-            className="flex items-center gap-2 px-3 py-1 bg-[#00FF9C]/10 border border-[#00FF9C] text-[#00FF9C] rounded-lg text-sm hover:bg-[#00FF9C]/20 transition-all"
+            className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-[#444] text-[#ccc] rounded-lg text-sm hover:bg-white/10 transition-all"
           >
             {copied === 'fetch' ? (
               <>

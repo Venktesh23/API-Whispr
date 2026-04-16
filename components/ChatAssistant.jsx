@@ -276,9 +276,9 @@ export default function ChatAssistant({ currentSpec }) {
                         animate={{ opacity: 1, y: 0 }}
                         className="flex items-center gap-2 text-xs"
                       >
-                        <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-500/20 border border-blue-500/30 rounded-full">
-                          <Zap className="h-3 w-3 text-blue-400" />
-                          <span className="text-blue-200 font-medium">RAG Enhanced</span>
+                        <div className="flex items-center gap-1.5 px-3 py-1 bg-white/5 border border-[#444] rounded-full">
+                          <Zap className="h-3 w-3 text-[#aaa]" />
+                          <span className="text-[#ccc] font-medium">Smart Search Active</span>
                         </div>
                         <span className="text-gray-500 text-xs">Searching your API docs</span>
                       </motion.div>

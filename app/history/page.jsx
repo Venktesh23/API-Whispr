@@ -50,7 +50,7 @@ export default function HistoryPage() {
   const [showSortDropdown, setShowSortDropdown] = useState(false)
   
   const router = useRouter()
-  const { user } = useSupabase()
+  const { user, supabase } = useSupabase()
   const { setCurrentSpec } = useChatContext()
 
   useEffect(() => {
@@ -63,14 +63,15 @@ export default function HistoryPage() {
     try {
       setIsLoading(true)
       
-      const response = await fetch(`/api/specs?userId=${user.id}`)
-      const result = await response.json()
+      const { data, error } = await supabase
+        .from('api_specs')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
 
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to fetch specifications')
-      }
+      if (error) throw error
 
-      setAnalyses(result.specs || [])
+      setAnalyses(data || [])
     } catch (error) {
       console.error('Error fetching analyses:', error)
     } finally {
@@ -78,20 +79,21 @@ export default function HistoryPage() {
     }
   }
 
-  const handleAnalysisClick = async (analysis) => {
+  const handleAnalysisClick = (analysis) => {
     try {
-      // Set the current spec in context
-      setCurrentSpec({
+      const specData = {
         id: analysis.id,
+        user_id: analysis.user_id,
         filename: analysis.filename,
         filetype: analysis.filetype,
         parsed_spec: analysis.parsed_spec,
         raw_text: analysis.raw_text,
-        analysis_result: analysis.analysis_result,
-        created_at: analysis.created_at
-      })
+        question: 'Analyze this API specification',
+      }
 
-      // Navigate to analysis page
+      // Analysis page reads from sessionStorage on load
+      sessionStorage.setItem('currentSpec', JSON.stringify(specData))
+      setCurrentSpec(specData)
       router.push('/analysis')
     } catch (error) {
       console.error('Error loading analysis:', error)
@@ -100,17 +102,13 @@ export default function HistoryPage() {
 
   const handleDeleteAnalysis = async (analysisId) => {
     try {
-      const response = await fetch('/api/delete-spec', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ specId: analysisId, userId: user.id })
-      })
+      const { error } = await supabase
+        .from('api_specs')
+        .delete()
+        .eq('id', analysisId)
+        .eq('user_id', user.id)
 
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to delete')
-      }
+      if (error) throw error
 
       setAnalyses(prev => prev.filter(analysis => analysis.id !== analysisId))
     } catch (error) {
@@ -136,7 +134,7 @@ export default function HistoryPage() {
       case 'openapi':
         return 'text-gray-300'
       case 'docx':
-        return 'text-blue-400'
+        return 'text-gray-300'
       case 'pdf':
         return 'text-red-400'
       default:

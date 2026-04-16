@@ -7,14 +7,16 @@ Upload your API specs, chat with your API in plain English, generate code, creat
 ## Features
 
 - **AI Chat Interface** - Ask questions about your API in natural language
+- **Real-Time Streaming** - Semantic-aware response streaming with multiple chunking strategies
 - **Multi-Format Upload** - OpenAPI specs (YAML/JSON), PDF, DOCX, or paste raw content
 - **Smart Analysis** - Instant endpoint analysis with health scoring and metrics
 - **Code Generation** - Generate ready-to-use code in Python, TypeScript, JavaScript, Go, and cURL
 - **Test Generation** - Auto-generate test suites in Jest, Pytest, or Postman collections
 - **Spec Comparison** - Side-by-side comparison to detect breaking changes and deprecations
 - **Project History** - All your previous analyses saved and easily accessible
-- **Secure & Private** - End-to-end encrypted with Supabase authentication
+- **Secure & Private** - Row-Level Security (RLS) with Supabase authentication
 - **Dark Theme Design** - Modern, minimalist UI optimized for all devices
+- **Production Ready** - Full CI/CD pipeline, comprehensive testing, monitoring dashboard
 
 ## Getting Started
 
@@ -57,10 +59,55 @@ Upload your API specs, chat with your API in plain English, generate code, creat
 
 - **Frontend**: Next.js 14, React 18, Tailwind CSS, Framer Motion
 - **AI**: OpenAI API (GPT-4, GPT-3.5)
-- **Backend**: Supabase PostgreSQL, Auth, pgvector
+- **Backend**: Supabase PostgreSQL, Auth, pgvector, RLS
 - **File Processing**: js-yaml, pdf-parse, mammoth, swagger-parser
+- **Testing**: Jest, @testing-library/react
+- **CI/CD**: GitHub Actions, Vercel
+- **Streaming**: Server-Sent Events (SSE), semantic chunking
 
-## Project Structure
+## Recent Improvements (April 2026)
+
+### Streaming & Chunking ✨
+- **Real-time SSE Streaming** - Semantic-aware response chunking
+- **3 Chunking Strategies** - Semantic (best for readability), fixed-size, word-boundary
+- **Configurable Delays** - Optimize for different network conditions
+- **Token Estimation** - Better rate limiting and cost tracking
+
+See `lib/streaming.js` for implementation details.
+
+### Security & RLS 🔒
+- **Row-Level Security (RLS)** - Database-level user data isolation
+- **Ownership Validation** - All operations verify user ownership
+- **Improved Error Handling** - Better security messages
+- **DELETE Operations** - Clear chat history with RLS checks
+
+See `pages/api/chat-rls.js` and `IMPLEMENTATION_GUIDE.md` for details.
+
+### CI/CD Pipeline 🚀
+Complete GitHub Actions workflow including:
+- **Quality Checks** - ESLint, TypeScript validation
+- **Automated Testing** - Unit & integration tests with coverage
+- **Security Scanning** - Trivy vulnerability scanning
+- **Staging Deployment** - Auto-deploy to staging (develop branch)
+- **Production Deployment** - Auto-deploy to production (main branch)
+- **Notifications** - Slack alerts on deployment
+
+See `.github/workflows/ci-cd.yml` and `GITHUB_ACTIONS_SETUP.md` for setup.
+
+### Testing Infrastructure 🧪
+- **68+ Test Cases** - Comprehensive coverage
+- **Integration Tests** - Full API endpoint testing
+- **Jest Configuration** - Next.js optimized setup
+- **Coverage Reporting** - Codecov integration
+
+Run tests with: `npm run test:ci`
+
+### Documentation 📚
+New guides created:
+- `GITHUB_ACTIONS_SETUP.md` - CI/CD setup instructions
+- `IMPLEMENTATION_GUIDE.md` - Technical implementation details
+- `TODOS_COMPLETED.md` - Completion summary
+- `QUICK_START.md` - Getting started guide
 
 ```
 api-whispr/

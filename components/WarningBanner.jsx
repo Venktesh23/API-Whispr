@@ -256,7 +256,7 @@ export default function WarningBanner({ warnings, currentSpec }) {
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                  <Wrench className="h-6 w-6 text-cyan-400" />
+                  <Wrench className="h-6 w-6 text-[#888]" />
                   AI-Generated Fix
                 </h3>
                 <button
@@ -274,9 +274,9 @@ export default function WarningBanner({ warnings, currentSpec }) {
                 </div>
 
                 {currentFix.explanation && (
-                  <div className="p-4 bg-blue-500/10 border border-blue-400/30 rounded-lg">
-                    <h4 className="font-medium text-blue-200 mb-2">AI Explanation:</h4>
-                    <p className="text-blue-100 text-sm">{currentFix.explanation}</p>
+                  <div className="p-4 bg-white/5 border border-[#444] rounded-lg">
+                    <h4 className="font-medium text-[#ccc] mb-2">AI Explanation:</h4>
+                    <p className="text-[#aaa] text-sm">{currentFix.explanation}</p>
                   </div>
                 )}
 
@@ -304,7 +304,7 @@ export default function WarningBanner({ warnings, currentSpec }) {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={applyFix}
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+                    className="flex-1 px-6 py-3 bg-white hover:bg-white/90 text-[#0d0d0d] rounded-xl transition-all duration-200 font-semibold"
                   >
                     ✅ Apply Fix to Specification
                   </motion.button>

@@ -71,12 +71,10 @@ export default function RelatedQuestions({ currentSpec }) {
     try {
       const response = await fetch('/api/ask', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           question,
-          specContent: JSON.stringify(currentSpec.parsed_spec || currentSpec.raw_text),
+          spec: currentSpec.parsed_spec || currentSpec.raw_text,
           specType: currentSpec.filetype || 'unknown'
         })
       })
@@ -85,8 +83,32 @@ export default function RelatedQuestions({ currentSpec }) {
         throw new Error(`Failed to get answer: ${response.status}`)
       }
 
-      const data = await response.json()
-      setAnswer(data.answer || 'No answer available')
+      // /api/ask is SSE — read the stream
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let accumulated = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const chunk = decoder.decode(value)
+        for (const line of chunk.split('\n')) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+              if (data.text) {
+                accumulated += data.text
+                setAnswer(accumulated)
+              }
+              if (data.done) {
+                setExpandedQuestions(prev => new Set(prev).add(question))
+              }
+            } catch { /* skip parse errors */ }
+          }
+        }
+      }
+
+      if (!accumulated) setAnswer('No answer available')
       setExpandedQuestions(prev => new Set(prev).add(question))
     } catch (err) {
       console.error('Error getting answer:', err)
@@ -102,7 +124,7 @@ export default function RelatedQuestions({ currentSpec }) {
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          className="w-8 h-8 border-2 border-[#00FF9C]/30 border-t-[#00FF9C] rounded-full"
+          className="w-8 h-8 border-2 border-white/10 border-t-white rounded-full"
         />
                   <span className="ml-3 text-[#999]">Loading...</span>
       </div>
@@ -150,7 +172,7 @@ export default function RelatedQuestions({ currentSpec }) {
             className="w-full p-4 text-left bg-[#1a1a1a] hover:bg-[#1f1f1f] transition-colors flex items-center justify-between group"
           >
             <div className="flex items-center gap-3 flex-1">
-              <Sparkles className="h-4 w-4 text-[#00FF9C] flex-shrink-0" />
+              <Sparkles className="h-4 w-4 text-[#888] flex-shrink-0" />
               <span className="text-[#e0e0e0] text-sm group-hover:text-white transition-colors">
                 {question}
               </span>
@@ -161,7 +183,7 @@ export default function RelatedQuestions({ currentSpec }) {
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  className="w-4 h-4 border-2 border-[#00FF9C]/30 border-t-[#00FF9C] rounded-full"
+                  className="w-4 h-4 border-2 border-white/10 border-t-white rounded-full"
                 />
               )}
               
@@ -204,7 +226,7 @@ export default function RelatedQuestions({ currentSpec }) {
           whileTap={{ scale: 0.98 }}
           onClick={generateQuestions}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-[#00FF9C]/10 border border-[#00FF9C] text-[#00FF9C] rounded-lg transition-all duration-300 text-sm font-medium hover:bg-[#00FF9C]/20 shadow-[0_0_6px_#00FF9C] disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-[#444] text-[#ccc] rounded-lg transition-all duration-300 text-sm font-medium hover:bg-white/10 disabled:opacity-50"
         >
           {loading ? (
             <>

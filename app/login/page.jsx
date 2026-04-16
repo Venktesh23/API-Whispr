@@ -276,7 +276,7 @@ export default function LoginPage() {
                             </>
                           )}
                         </span>
-                        <div className="absolute inset-0 group-hover:bg-[#00FF9C]/5 transition-all duration-300" />
+                        <div className="absolute inset-0 group-hover:bg-white/5 transition-all duration-300" />
                       </button>
                     </form>
 

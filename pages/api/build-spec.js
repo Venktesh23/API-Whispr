@@ -1,4 +1,4 @@
-const conversation = []
+import { callGemini } from '../../lib/gemini'
 
 const BUILD_SPEC_SYSTEM_PROMPT = `You are an expert OpenAPI specification builder assistant. Your job is to help users create, modify, and refine OpenAPI 3.0 specifications through conversation.
 
@@ -30,81 +30,40 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Message is required' })
     }
 
-    console.log('🔄 Processing spec builder request...')
-    console.log('Message:', message.substring(0, 100))
-    console.log('History length:', history.length)
+    // Build conversation context from history
+    const historyContext =
+      history.length > 0
+        ? `\n\nConversation so far:\n${history.map((m) => `${m.role}: ${m.content}`).join('\n')}\n\nNow respond to:`
+        : ''
 
-    // Build messages array from history + new message
-    const messages = [
-      {
-        role: 'system',
-        content: BUILD_SPEC_SYSTEM_PROMPT,
-      },
-      ...history.map(msg => ({
-        role: msg.role,
-        content: msg.content,
-      })),
-      {
-        role: 'user',
-        content: message,
-      },
-    ]
+    const userPrompt = `${historyContext}\n${message}`
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4-turbo',
-        messages,
-        temperature: 0.7,
-        max_tokens: 2000,
-        response_format: {
-          type: 'json_object',
-        },
-      }),
+    const result = await callGemini(BUILD_SPEC_SYSTEM_PROMPT, userPrompt, {
+      temperature: 0.7,
+      maxOutputTokens: 2000,
     })
 
-    if (!response.ok) {
-      const errorData = await response.json()
-      console.error('OpenAI API error:', errorData)
-      throw new Error(`OpenAI API error: ${response.status}`)
-    }
-
-    const data = await response.json()
-    let responseContent = data.choices?.[0]?.message?.content || '{}'
-
-    // Ensure we parse valid JSON
     let parsedResponse
     try {
-      parsedResponse = JSON.parse(responseContent)
-    } catch (e) {
-      console.error('Failed to parse response JSON:', responseContent)
-      // If JSON parsing fails, try to extract JSON from the response
-      const jsonMatch = responseContent.match(/\{[\s\S]*\}/)
+      const cleaned = result.replace(/^```json\s*/i, '').replace(/\s*```$/, '').trim()
+      parsedResponse = JSON.parse(cleaned)
+    } catch {
+      const jsonMatch = result.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
         parsedResponse = JSON.parse(jsonMatch[0])
       } else {
-        throw new Error('Invalid JSON response from OpenAI')
+        parsedResponse = { message: result, specYaml: '', status: 'building' }
       }
     }
 
-    const { message: assistantMessage, specYaml, status } = parsedResponse
-
-    console.log('✅ Spec builder response generated')
-
     res.status(200).json({
       success: true,
-      message: assistantMessage || 'Specification updated',
-      specYaml: specYaml || '',
-      status: status || 'building',
+      message: parsedResponse.message || 'Specification updated',
+      specYaml: parsedResponse.specYaml || '',
+      status: parsedResponse.status || 'building',
     })
   } catch (error) {
     console.error('Spec builder error:', error)
-    res.status(500).json({
-      error: error.message || 'Failed to process spec builder request',
-    })
+    res.status(500).json({ error: error.message || 'Failed to process spec builder request' })
   }
 }

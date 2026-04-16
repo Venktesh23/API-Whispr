@@ -12,14 +12,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Fetch the content from the URL
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'API-Whispr/1.0'
-      },
-      timeout: 10000 // 10 second timeout
-    })
+    // Fetch the content from the URL with a real 10-second timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000)
+
+    let response
+    try {
+      response = await fetch(url, {
+        method: 'GET',
+        headers: { 'User-Agent': 'API-Whispr/1.0' },
+        signal: controller.signal,
+      })
+    } finally {
+      clearTimeout(timeoutId)
+    }
 
     if (!response.ok) {
       return res.status(400).json({ 
@@ -100,12 +106,12 @@ export default async function handler(req, res) {
     console.error('Fetch spec error:', error)
     
     let errorMessage = 'Failed to fetch spec from URL'
-    if (error.code === 'ENOTFOUND') {
+    if (error.name === 'AbortError') {
+      errorMessage = 'Request timed out. The server took too long to respond.'
+    } else if (error.code === 'ENOTFOUND') {
       errorMessage = 'Invalid URL or domain not found'
     } else if (error.code === 'ECONNREFUSED') {
       errorMessage = 'Connection refused. The server may be down.'
-    } else if (error.message === 'Fetch timeout') {
-      errorMessage = 'Request timeout. The server took too long to respond.'
     }
 
     return res.status(400).json({ error: errorMessage })

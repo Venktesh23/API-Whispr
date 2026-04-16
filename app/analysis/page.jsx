@@ -26,10 +26,12 @@ import {
   Play,
   Shield,
   Share2,
-  X
+  X,
+  ShieldCheck
 } from 'lucide-react'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { useSupabase } from '../../hooks/useSupabase'
 import ChatAssistant from '../../components/ChatAssistant'
 import VisualSummaryChart from '../../components/VisualSummaryChart'
 import EndpointCard from '../../components/EndpointCard'
@@ -42,6 +44,7 @@ import SpecComparer from '../../components/SpecComparer'
 import ApiHealthScore from '../../components/ApiHealthScore'
 import AIFeatureShowcase from '../../components/AIFeatureShowcase'
 import RequestBuilderResult from '../../components/RequestBuilderResult'
+import SpecAuditAgent from '../../components/SpecAuditAgent'
 
 
 const ensureString = (value) => {
@@ -67,10 +70,10 @@ const CollapsibleSection = ({ title, icon: Icon, children, defaultOpen = true, b
         className="w-full p-6 text-left flex items-center justify-between hover:bg-[#1f1f1f] transition-colors"
       >
         <div className="flex items-center gap-4">
-          <Icon className="h-6 w-6 text-[#00FF9C]" />
+          <Icon className="h-6 w-6 text-[#888]" />
           <h2 className="text-xl font-semibold text-white">{title}</h2>
           {badge && (
-            <span className="px-3 py-1 bg-[#00FF9C]/10 border border-[#00FF9C] text-[#00FF9C] rounded-full text-xs font-medium shadow-[0_0_8px_#00FF9C]">
+            <span className="px-3 py-1 bg-white/5 border border-[#444] text-[#aaa] rounded-full text-xs font-medium">
               {badge}
             </span>
           )}
@@ -104,7 +107,8 @@ const CollapsibleSection = ({ title, icon: Icon, children, defaultOpen = true, b
 
 export default function AnalysisPage() {
   const router = useRouter()
-  
+  const { supabase } = useSupabase()
+
   const [analysisData, setAnalysisData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -258,7 +262,8 @@ export default function AnalysisPage() {
       })
 
       if (!response.ok) {
-        throw new Error(`Analysis failed: ${response.status} ${response.statusText}`)
+        const errBody = await response.json().catch(() => ({}))
+        throw new Error(errBody.error || `Analysis failed: ${response.status} ${response.statusText}`)
       }
 
       const data = await response.json()
@@ -381,7 +386,7 @@ export default function AnalysisPage() {
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            className="w-16 h-16 border-4 border-[#00FF9C]/30 border-t-[#00FF9C] rounded-full mx-auto mb-6"
+            className="w-16 h-16 border-4 border-white/10 border-t-white rounded-full mx-auto mb-6"
           />
           <h1 className="text-2xl font-semibold text-white mb-2">Analyzing Your API</h1>
           <p className="text-[#999]">AI is processing your specification...</p>
@@ -393,7 +398,7 @@ export default function AnalysisPage() {
               transition={{ delay: 0.5 }}
               className="mt-6 px-4 py-2 bg-[#1a1a1a] rounded-lg inline-block border border-[#2a2a2a]"
             >
-              <p className="text-[#00FF9C] text-sm font-medium">
+              <p className="text-[#aaa] text-sm font-medium">
                 📄 {currentSpec.filename}
               </p>
             </motion.div>
@@ -452,7 +457,7 @@ export default function AnalysisPage() {
       <div className="min-h-screen bg-gradient-to-br from-[#0d0d0d] to-[#121212] text-[#e0e0e0] font-['Inter',sans-serif] relative">
       {/* Subtle background grid */}
       <div className="absolute inset-0 opacity-20" style={{
-        backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(0, 255, 156, 0.1) 1px, transparent 0)',
+        backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.03) 1px, transparent 0)',
         backgroundSize: '20px 20px'
       }}></div>
       <div className="relative z-10">
@@ -473,7 +478,7 @@ export default function AnalysisPage() {
                 <div className="flex items-center gap-3">
                   <h1 className="text-xl font-semibold text-white">API Analysis</h1>
                   {currentSpec && (
-                    <span className="px-3 py-1 bg-[#00FF9C]/10 border border-[#00FF9C] text-[#00FF9C] rounded-full text-sm font-medium shadow-[0_0_8px_#00FF9C]">
+                    <span className="px-3 py-1 bg-white/5 border border-[#444] text-[#aaa] rounded-full text-sm font-medium">
                       {currentSpec.filetype?.toUpperCase()}
                     </span>
                   )}
@@ -575,8 +580,8 @@ export default function AnalysisPage() {
                 <div>
                   <label className="text-xs text-[#999] uppercase tracking-wide font-medium">Status</label>
                   <div className="flex items-center gap-2 mt-1">
-                    <div className="w-2 h-2 bg-[#00FF9C] rounded-full shadow-[0_0_6px_#00FF9C]"></div>
-                    <span className="text-[#00FF9C] font-medium">Analyzed</span>
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-green-400 font-medium">Analyzed</span>
                   </div>
                 </div>
               </div>
@@ -657,7 +662,7 @@ export default function AnalysisPage() {
                     {analysisData.requiredParams.map((param, index) => (
                       <tr key={index} className="border-b border-[#2a2a2a]/50 hover:bg-[#1f1f1f] transition-colors">
                         <td className="py-3 px-4">
-                          <code className="px-2 py-1 bg-[#00FF9C]/10 border border-[#00FF9C] text-[#00FF9C] rounded text-sm font-medium shadow-[0_0_6px_#00FF9C]">
+                          <code className="px-2 py-1 bg-white/5 border border-[#444] text-[#e0e0e0] rounded text-sm font-medium font-mono">
                             {param.name}
                           </code>
                         </td>
@@ -706,8 +711,8 @@ export default function AnalysisPage() {
                       whileTap={{ scale: 0.95 }}
                       className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
                         activeLanguage === lang
-                          ? 'bg-[#00FF9C] text-[#0d0d0d] shadow-[0_0_12px_#00FF9C]'
-                          : 'bg-[#1a1a1a] text-[#999] border border-[#2a2a2a] hover:border-[#00FF9C]/50'
+                          ? 'bg-white text-[#0d0d0d]'
+                          : 'bg-[#1a1a1a] text-[#999] border border-[#2a2a2a] hover:border-[#555]'
                       }`}
                     >
                       {lang.charAt(0).toUpperCase() + lang.slice(1)}
@@ -726,7 +731,7 @@ export default function AnalysisPage() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => copyToClipboard(ensureString(analysisData.codeSnippets[activeLanguage]), activeLanguage)}
-                    className="flex items-center gap-2 px-3 py-1 bg-[#00FF9C]/10 border border-[#00FF9C] text-[#00FF9C] rounded-lg transition-all duration-300 text-sm font-medium hover:bg-[#00FF9C]/20 shadow-[0_0_6px_#00FF9C]"
+                    className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-[#444] text-[#ccc] rounded-lg transition-all duration-300 text-sm font-medium hover:bg-white/10"
                   >
                     {copiedCode === activeLanguage ? (
                       <>
@@ -814,7 +819,7 @@ export default function AnalysisPage() {
                     value={requestBuilderIntent}
                     onChange={(e) => setRequestBuilderIntent(e.target.value)}
                     placeholder="e.g., 'Get all users with admin role' or 'Create a new product'"
-                    className="flex-1 px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white placeholder-[#666] focus:outline-none focus:border-[#00FF9C]"
+                    className="flex-1 px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white placeholder-[#666] focus:outline-none focus:border-[#555]"
                     disabled={isBuildingRequest}
                   />
                   <motion.button
@@ -822,7 +827,7 @@ export default function AnalysisPage() {
                     whileTap={{ scale: 0.98 }}
                     onClick={handleBuildRequest}
                     disabled={!requestBuilderIntent.trim() || isBuildingRequest}
-                    className="px-6 py-2 bg-[#00FF9C] text-[#0d0d0d] rounded-lg font-medium hover:bg-[#00FF9C]/90 disabled:opacity-50 transition-colors flex items-center gap-2"
+                    className="px-6 py-2 bg-white text-[#0d0d0d] rounded-lg font-medium hover:bg-white/90 disabled:opacity-50 transition-colors flex items-center gap-2"
                   >
                     {isBuildingRequest ? (
                       <>
@@ -881,9 +886,22 @@ export default function AnalysisPage() {
             />
           </CollapsibleSection>
 
+          {/* AI Spec Audit Agent */}
+          <CollapsibleSection
+            title="AI Spec Audit Agent"
+            icon={ShieldCheck}
+            defaultOpen={false}
+            badge="Agent"
+          >
+            <SpecAuditAgent
+              currentSpec={currentSpec}
+              parsedEndpoints={parsedEndpoints}
+            />
+          </CollapsibleSection>
+
           {/* AI Flowchart Generator */}
-          <CollapsibleSection 
-            title="AI Flowchart Generator" 
+          <CollapsibleSection
+            title="AI Flowchart Generator"
             icon={Zap}
             badge="Generate"
           >
@@ -930,7 +948,7 @@ export default function AnalysisPage() {
               >
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                    <Share2 className="h-6 w-6 text-[#00FF9C]" />
+                    <Share2 className="h-6 w-6 text-[#888]" />
                     Share Analysis
                   </h2>
                   <motion.button
@@ -951,13 +969,13 @@ export default function AnalysisPage() {
                         type="text"
                         value={shareLink}
                         readOnly
-                        className="flex-1 px-4 py-2 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg text-[#00FF9C] font-mono text-sm"
+                        className="flex-1 px-4 py-2 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg text-[#aaa] font-mono text-sm"
                       />
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={copyShareLink}
-                        className="px-4 py-2 bg-[#00FF9C]/10 border border-[#00FF9C] text-[#00FF9C] rounded-lg font-medium hover:bg-[#00FF9C]/20 transition-all flex items-center gap-2"
+                        className="px-4 py-2 bg-white/5 border border-[#444] text-[#ccc] rounded-lg font-medium hover:bg-white/10 transition-all flex items-center gap-2"
                       >
                         {shareCopied ? (
                           <>
@@ -974,7 +992,7 @@ export default function AnalysisPage() {
                     </div>
                   </div>
 
-                  <div className="p-4 bg-[#00FF9C]/5 border border-[#00FF9C]/20 rounded-lg">
+                  <div className="p-4 bg-white/5 border border-[#333] rounded-lg">
                     <p className="text-xs text-gray-400 leading-relaxed">
                       This link allows anyone to view your API analysis without authentication. The link will expire after 30 days.
                     </p>
@@ -984,7 +1002,7 @@ export default function AnalysisPage() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setShowShareModal(false)}
-                    className="w-full px-4 py-2 bg-[#00FF9C] text-[#0d0d0d] rounded-lg font-medium hover:bg-[#00FF9C]/90 transition-colors"
+                    className="w-full px-4 py-2 bg-white text-[#0d0d0d] rounded-lg font-medium hover:bg-white/90 transition-colors"
                   >
                     Done
                   </motion.button>

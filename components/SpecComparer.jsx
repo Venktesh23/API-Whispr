@@ -150,7 +150,7 @@ export default function SpecComparer({ currentSpec, onClose }) {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700/50">
           <div className="flex items-center gap-3">
-            <GitCompare className="h-6 w-6 text-cyan-400" />
+            <GitCompare className="h-6 w-6 text-[#888]" />
             <h2 className="text-xl font-bold text-white">GPT-Powered Spec Comparison</h2>
           </div>
           <button
@@ -169,12 +169,12 @@ export default function SpecComparer({ currentSpec, onClose }) {
                 {/* Original Spec */}
                 <div className="space-y-3">
                   <h3 className="font-semibold text-gray-200 flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-blue-400" />
+                    <FileText className="h-5 w-5 text-[#888]" />
                     Original Specification
                   </h3>
-                  <div className="p-4 bg-blue-500/10 border border-blue-400/30 rounded-lg">
-                    <p className="text-blue-300 font-medium">{currentSpec.filename}</p>
-                    <p className="text-blue-200/80 text-sm mt-1">
+                  <div className="p-4 bg-white/5 border border-[#444] rounded-lg">
+                    <p className="text-[#ccc] font-medium">{currentSpec.filename}</p>
+                    <p className="text-[#888] text-sm mt-1">
                       {currentSpec.filetype?.toUpperCase()} • Currently loaded
                     </p>
                   </div>
@@ -253,9 +253,9 @@ export default function SpecComparer({ currentSpec, onClose }) {
             <div className="space-y-6">
               {/* Summary with Severity Counts */}
               <div className="space-y-4">
-                <div className="p-4 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-400/30 rounded-lg">
-                  <h3 className="font-semibold text-cyan-200 mb-2">Comparison Summary</h3>
-                  <p className="text-cyan-100">{comparisonResult.summary}</p>
+                <div className="p-4 bg-white/5 border border-[#444] rounded-lg">
+                  <h3 className="font-semibold text-[#ccc] mb-2">Comparison Summary</h3>
+                  <p className="text-[#e0e0e0]">{comparisonResult.summary}</p>
                 </div>
 
                 {/* Severity Badges */}
@@ -532,7 +532,7 @@ export default function SpecComparer({ currentSpec, onClose }) {
                   whileTap={{ scale: 0.98 }}
                   onClick={generateChangelog}
                   disabled={generatingChangelog}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:opacity-50 text-white rounded-xl transition-all duration-200 font-medium flex items-center gap-2"
+                  className="px-6 py-3 bg-white hover:bg-white/90 disabled:opacity-50 text-[#0d0d0d] rounded-xl transition-all duration-200 font-medium flex items-center gap-2"
                 >
                   {generatingChangelog ? (
                     <>
@@ -562,7 +562,7 @@ export default function SpecComparer({ currentSpec, onClose }) {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={onClose}
-                  className="px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl transition-all duration-200"
+                  className="px-6 py-3 bg-[#2a2a2a] hover:bg-[#333] border border-[#444] text-white rounded-xl transition-all duration-200"
                 >
                   Close
                 </motion.button>

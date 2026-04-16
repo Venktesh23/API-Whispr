@@ -104,7 +104,7 @@ export default function TestCaseModal({ endpoint, onClose, isOpen }) {
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-[#2a2a2a]">
             <div className="flex items-center gap-3">
-              <Code2 className="h-6 w-6 text-[#00FF9C]" />
+              <Code2 className="h-6 w-6 text-[#888]" />
               <div>
                 <h2 className="text-xl font-bold text-white">Generate Tests</h2>
                 <p className="text-gray-400 text-sm">
@@ -128,7 +128,7 @@ export default function TestCaseModal({ endpoint, onClose, isOpen }) {
               <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
                 {loading ? (
                   <>
-                    <Loader2 className="h-12 w-12 animate-spin text-[#00FF9C]" />
+                    <Loader2 className="h-12 w-12 animate-spin text-[#888]" />
                     <p className="text-gray-300">
                       Generating test cases with AI...
                     </p>
@@ -140,7 +140,7 @@ export default function TestCaseModal({ endpoint, onClose, isOpen }) {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={generateTests}
-                      className="px-6 py-2 bg-[#00FF9C] text-[#0d0d0d] rounded-lg font-medium hover:bg-[#00FF9C]/90 transition-colors"
+                      className="px-6 py-2 bg-white text-[#0d0d0d] rounded-lg font-medium hover:bg-white/90 transition-colors"
                     >
                       Try Again
                     </motion.button>
@@ -150,7 +150,7 @@ export default function TestCaseModal({ endpoint, onClose, isOpen }) {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={generateTests}
-                    className="px-8 py-3 bg-[#00FF9C] text-[#0d0d0d] rounded-lg font-semibold hover:bg-[#00FF9C]/90 transition-colors"
+                    className="px-8 py-3 bg-white text-[#0d0d0d] rounded-lg font-semibold hover:bg-white/90 transition-colors"
                   >
                     Generate Test Cases
                   </motion.button>
@@ -168,8 +168,8 @@ export default function TestCaseModal({ endpoint, onClose, isOpen }) {
                       whileTap={{ scale: 0.95 }}
                       className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
                         activeTab === tab
-                          ? 'bg-[#00FF9C] text-[#0d0d0d] shadow-[0_0_12px_#00FF9C]'
-                          : 'bg-[#1a1a1a] text-[#999] border border-[#2a2a2a] hover:border-[#00FF9C]/50'
+                          ? 'bg-white text-[#0d0d0d]'
+                          : 'bg-[#1a1a1a] text-[#999] border border-[#2a2a2a] hover:border-[#555]'
                       }`}
                     >
                       {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -214,7 +214,7 @@ export default function TestCaseModal({ endpoint, onClose, isOpen }) {
                               : JSON.stringify(testCases[activeTab], null, 2)
                           )
                         }
-                        className="flex items-center gap-2 px-3 py-1 bg-[#00FF9C]/10 border border-[#00FF9C] text-[#00FF9C] rounded-lg text-sm hover:bg-[#00FF9C]/20 transition-all"
+                        className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-[#444] text-[#ccc] rounded-lg text-sm hover:bg-white/10 transition-all"
                       >
                         {copiedTab === activeTab ? (
                           <>
@@ -256,7 +256,7 @@ export default function TestCaseModal({ endpoint, onClose, isOpen }) {
                 </div>
 
                 {/* Info Box */}
-                <div className="p-4 bg-[#00FF9C]/5 border border-[#00FF9C]/20 rounded-lg">
+                <div className="p-4 bg-white/5 border border-[#2a2a2a] rounded-lg">
                   <p className="text-xs text-gray-400 leading-relaxed">
                     These are AI-generated test cases. Review and customize them
                     based on your specific requirements. Update base URLs,
@@ -285,7 +285,7 @@ export default function TestCaseModal({ endpoint, onClose, isOpen }) {
                   setTestCases(null)
                   setActiveTab('jest')
                 }}
-                className="px-4 py-2 bg-[#00FF9C] text-[#0d0d0d] rounded-lg font-medium hover:bg-[#00FF9C]/90 transition-colors"
+                className="px-4 py-2 bg-white text-[#0d0d0d] rounded-lg font-medium hover:bg-white/90 transition-colors"
               >
                 Generate New
               </motion.button>

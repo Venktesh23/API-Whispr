@@ -50,7 +50,7 @@ export default function ChangelogModal({ changelog, isOpen, onClose, version, da
                 <h2 className="text-2xl font-bold text-white flex items-center gap-3">
                   📝 Generated Changelog
                   {version && (
-                    <span className="text-sm px-3 py-1 bg-[#00FF9C]/10 border border-[#00FF9C] text-[#00FF9C] rounded-full">
+                    <span className="text-sm px-3 py-1 bg-white/5 border border-[#444] text-[#aaa] rounded-full">
                       {version}
                     </span>
                   )}
@@ -73,7 +73,7 @@ export default function ChangelogModal({ changelog, isOpen, onClose, version, da
             {changeStats && (
               <div className="px-6 py-4 bg-[#0d0d0d]/30 border-b border-[#2a2a2a] flex gap-6">
                 <div className="flex items-center gap-2">
-                  <span className="text-[#00FF9C] font-semibold">{changeStats.newEndpoints}</span>
+                  <span className="text-green-400 font-semibold">{changeStats.newEndpoints}</span>
                   <span className="text-[#666]">New Endpoints</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -93,14 +93,14 @@ export default function ChangelogModal({ changelog, isOpen, onClose, version, da
                 <ReactMarkdown
                   components={{
                     h1: ({ children }) => <h1 className="text-3xl font-bold text-white mb-6 mt-0">{children}</h1>,
-                    h2: ({ children }) => <h2 className="text-2xl font-bold text-white mt-6 mb-3 text-[#00FF9C]">{children}</h2>,
+                    h2: ({ children }) => <h2 className="text-2xl font-bold text-white mt-6 mb-3">{children}</h2>,
                     h3: ({ children }) => <h3 className="text-lg font-semibold text-white mt-4 mb-2">{children}</h3>,
                     p: ({ children }) => <p className="text-[#ccc] mb-3 leading-relaxed">{children}</p>,
                     ul: ({ children }) => <ul className="list-disc list-inside text-[#ccc] mb-4 space-y-2">{children}</ul>,
                     ol: ({ children }) => <ol className="list-decimal list-inside text-[#ccc] mb-4 space-y-2">{children}</ol>,
                     li: ({ children }) => <li className="text-[#ccc]">{children}</li>,
                     code: ({ children }) => (
-                      <code className="bg-[#0a0a0a] text-[#00FF9C] px-2 py-1 rounded font-mono text-xs">
+                      <code className="bg-[#0a0a0a] text-[#e8e8e8] px-2 py-1 rounded font-mono text-xs">
                         {children}
                       </code>
                     ),
@@ -110,7 +110,7 @@ export default function ChangelogModal({ changelog, isOpen, onClose, version, da
                       </pre>
                     ),
                     blockquote: ({ children }) => (
-                      <blockquote className="border-l-4 border-[#00FF9C] pl-4 text-[#999] italic my-4">
+                      <blockquote className="border-l-4 border-[#444] pl-4 text-[#999] italic my-4">
                         {children}
                       </blockquote>
                     ),
@@ -133,7 +133,7 @@ export default function ChangelogModal({ changelog, isOpen, onClose, version, da
               >
                 {copied ? (
                   <>
-                    <CheckCircle className="h-4 w-4 text-[#00FF9C]" />
+                    <CheckCircle className="h-4 w-4 text-green-400" />
                     Copied!
                   </>
                 ) : (
@@ -147,7 +147,7 @@ export default function ChangelogModal({ changelog, isOpen, onClose, version, da
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={downloadChangelog}
-                className="px-4 py-2 bg-[#00FF9C] hover:bg-[#00FF9C]/90 text-[#0d0d0d] rounded-lg font-semibold transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-white hover:bg-white/90 text-[#0d0d0d] rounded-lg font-semibold transition-colors flex items-center gap-2"
               >
                 <Download className="h-4 w-4" />
                 Download as Markdown
