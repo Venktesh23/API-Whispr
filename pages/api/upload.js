@@ -126,25 +126,27 @@ export default async function handler(req, res) {
 
     fs.unlinkSync(file.filepath)
 
-    res.status(200).json({ 
+    const response = { 
       spec: data,
       info: parsedSpec?.info || null
-    })
+    }
 
     if (parsedSpec && typeof parsedSpec === 'object' && parsedSpec.paths) {
       console.log('Starting RAG indexing pipeline for spec in background...')
       
-      setTimeout(async () => {
+      process.nextTick(async () => {
         try {
           const chunks = await chunkSpec(parsedSpec)
           const embeddedChunks = await embedChunks(chunks)
           await storeChunks(supabase, data.id, userId, embeddedChunks)
           console.log('RAG indexing completed successfully')
         } catch (indexError) {
-          console.error('RAG indexing failed (degrading gracefully):', indexError.message)
+          console.error('RAG indexing failed:', indexError.message)
         }
-      }, 0)
+      })
     }
+
+    return res.status(200).json(response)
 
   } catch (error) {
     console.error('Upload error:', error)
