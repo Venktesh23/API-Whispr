@@ -144,6 +144,7 @@ export default async function handler(req, res) {
           console.error('RAG indexing failed (degrading gracefully):', indexError.message)
         }
       }, 0)
+    }
 
   } catch (error) {
     console.error('Upload error:', error)
