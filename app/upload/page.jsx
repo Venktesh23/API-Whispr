@@ -258,7 +258,6 @@ export default function UploadPage() {
     setAlert({ type: '', message: '' })
     
     try {
-      // Step 1: Process paste via API
       const response = await fetch('/api/paste', {
         method: 'POST',
         headers: {
@@ -277,33 +276,13 @@ export default function UploadPage() {
       if (!response.ok) {
         throw new Error(result.error || 'Processing failed')
       }
-      console.log('Paste API success:', result.spec.id)
-
-      const { data: latestSpecs, error: fetchError } = await supabase
-        .from('api_specs')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-
-      if (fetchError) {
-        console.error("Failed to fetch latest spec:", fetchError)
-        throw new Error('Failed to retrieve processed specification')
-      }
-
-      if (!latestSpecs || latestSpecs.length === 0) {
-        throw new Error('No specification found after processing')
-      }
-
-      const latestSpec = latestSpecs[0]
-      console.log('Fetched latest spec:', latestSpec.id)
 
       const specData = {
-        id: latestSpec.id,
-        filename: latestSpec.filename,
-        filetype: latestSpec.filetype,
-        parsed_spec: latestSpec.parsed_spec,
-        raw_text: latestSpec.raw_text,
+        id: result.spec.id,
+        filename: result.spec.filename,
+        filetype: result.spec.filetype,
+        parsed_spec: result.spec.parsed_spec,
+        raw_text: result.spec.raw_text,
         question: 'Analyze this API specification'
       }
       
