@@ -102,7 +102,7 @@ export default function UploadPage() {
   const [alert, setAlert] = useState({ type: '', message: '' })
   
   const router = useRouter()
-  const { user, supabase, signOut } = useSupabase()
+  const { user } = useSupabase()
   const { setCurrentSpec, setChatOpen } = useChatContext()
 
   const handleDrag = useCallback((e) => {
@@ -205,28 +205,12 @@ export default function UploadPage() {
         throw new Error(result.error || 'Upload failed')
       }
 
-      const { data: latestSpecs, error: fetchError } = await supabase
-        .from('api_specs')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-
-      if (fetchError) {
-        throw new Error('Failed to retrieve uploaded specification')
-      }
-
-      if (!latestSpecs || latestSpecs.length === 0) {
-        throw new Error('No specification found after upload')
-      }
-
-      const latestSpec = latestSpecs[0]
       const specData = {
-        id: latestSpec.id,
-        filename: latestSpec.filename,
-        filetype: latestSpec.filetype,
-        parsed_spec: latestSpec.parsed_spec,
-        raw_text: latestSpec.raw_text,
+        id: result.spec.id,
+        filename: result.spec.filename,
+        filetype: result.spec.filetype,
+        parsed_spec: result.spec.parsed_spec,
+        raw_text: result.spec.raw_text,
         question: 'Analyze this API specification'
       }
       
@@ -352,32 +336,12 @@ export default function UploadPage() {
         throw new Error(pasteResult.error || 'Failed to process specification')
       }
 
-      console.log('URL fetch and processing complete:', pasteResult.spec.id)
-
-      const { data: latestSpecs, error: fetchError } = await supabase
-        .from('api_specs')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-
-      if (fetchError) {
-        console.error("Failed to fetch latest spec:", fetchError)
-        throw new Error('Failed to retrieve specification')
-      }
-
-      if (!latestSpecs || latestSpecs.length === 0) {
-        throw new Error('No specification found after processing')
-      }
-
-      const latestSpec = latestSpecs[0]
-
       const specData = {
-        id: latestSpec.id,
-        filename: latestSpec.filename,
-        filetype: latestSpec.filetype,
-        parsed_spec: latestSpec.parsed_spec,
-        raw_text: latestSpec.raw_text,
+        id: pasteResult.spec.id,
+        filename: pasteResult.spec.filename,
+        filetype: pasteResult.spec.filetype,
+        parsed_spec: pasteResult.spec.parsed_spec,
+        raw_text: pasteResult.spec.raw_text,
         question: 'Analyze this API specification'
       }
       
