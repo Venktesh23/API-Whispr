@@ -25,7 +25,7 @@ Your job is to:
 ALWAYS return:
 1. A clear, human explanation with endpoint path + method
 2. Required parameters with types and where they go (query, path, body, etc.)
-3. curl and Python code snippets
+3. Code snippets in 5 languages: cURL, Python, JavaScript (fetch), TypeScript (with inferred types), and Go
 4. Common status codes
 5. If possible: a visual explanation (e.g., method distribution, auth types)
 
@@ -33,10 +33,17 @@ Respond in valid JSON like:
 {
   "answer": "Human explanation...",
   "requiredParams": [...],
-  "codeSnippets": { "curl": "...", "python": "..." },
+  "codeSnippets": { 
+    "curl": "curl -X GET ...",
+    "python": "import requests...",
+    "javascript": "fetch(...)",
+    "typescript": "async function...",
+    "go": "package main..."
+  },
   "visualSummary": { "GET": 12, "POST": 4, ... }
 }
 
+Make code snippets production-ready and properly formatted. Use language-specific best practices.
 Make it simple enough for a beginner, but rich enough for pros.`
 
 export const config = {
@@ -155,7 +162,10 @@ export default async function handler(req, res) {
         requiredParams: [],
         codeSnippets: {
           curl: "curl -X GET 'https://api.example.com/endpoint' -H 'Authorization: Bearer YOUR_TOKEN'",
-          python: "import requests\n\nresponse = requests.get('https://api.example.com/endpoint', headers={'Authorization': 'Bearer YOUR_TOKEN'})\nprint(response.json())"
+          python: "import requests\n\nresponse = requests.get('https://api.example.com/endpoint', headers={'Authorization': 'Bearer YOUR_TOKEN'})\nprint(response.json())",
+          javascript: "fetch('https://api.example.com/endpoint', {\n  headers: { 'Authorization': 'Bearer YOUR_TOKEN' }\n})\n  .then(res => res.json())\n  .then(data => console.log(data))",
+          typescript: "async function fetchApi(): Promise<any> {\n  const response = await fetch('https://api.example.com/endpoint', {\n    headers: { 'Authorization': 'Bearer YOUR_TOKEN' }\n  });\n  return await response.json();\n}",
+          go: "package main\n\nimport (\n  \"fmt\"\n  \"net/http\"\n  \"io/ioutil\"\n)\n\nfunc main() {\n  req, _ := http.NewRequest(\"GET\", \"https://api.example.com/endpoint\", nil)\n  req.Header.Add(\"Authorization\", \"Bearer YOUR_TOKEN\")\n  resp, _ := http.DefaultClient.Do(req)\n  defer resp.Body.Close()\n  body, _ := ioutil.ReadAll(resp.Body)\n  fmt.Println(string(body))\n}"
         },
         dataStructureExample: {
           requestBodyExample: { "example": "data" },
@@ -176,16 +186,13 @@ export default async function handler(req, res) {
     }
 
     console.log('🎉 Analysis complete, sending response')
-    res.status(200).json(parsedResult)
+    return res.status(200).json(parsedResult)
 
   } catch (error) {
     console.error('💥 Analysis error:', error.message)
-    console.error('Stack:', error.stack)
     
-    res.status(500).json({ 
-      error: 'Analysis failed',
-      message: error.message,
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    return res.status(500).json({ 
+      error: 'Analysis failed. Please check your upload and try again.'
     })
   }
 } 

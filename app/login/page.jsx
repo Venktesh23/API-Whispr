@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import Head from 'next/head'
 import { useSupabase } from '../../hooks/useSupabase'
+import WorkflowAnimation from '../../components/WorkflowAnimation'
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -176,6 +177,11 @@ export default function LoginPage() {
                   <p className="text-xl text-gray-400 leading-relaxed max-w-lg font-light">
                     Transform complex OpenAPI specifications into clear, actionable documentation using advanced AI technology.
                   </p>
+                </div>
+
+                {/* Workflow Animation */}
+                <div className="pt-4">
+                  <WorkflowAnimation />
                 </div>
               </div>
 

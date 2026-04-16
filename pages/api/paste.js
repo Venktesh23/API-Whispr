@@ -1,6 +1,7 @@
 import yaml from 'js-yaml'
 import SwaggerParser from 'swagger-parser'
 import { createClient } from '@supabase/supabase-js'
+import { chunkSpec, embedChunks, storeChunks } from '../../lib/embeddings'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -15,8 +16,16 @@ export default async function handler(req, res) {
   try {
     const { content, contentType, userId, filename } = req.body
 
-    if (!content || !contentType || !userId) {
-      return res.status(400).json({ error: 'Content, contentType, and userId are required' })
+    if (!content) {
+      return res.status(400).json({ error: 'Content is required' })
+    }
+
+    if (!contentType) {
+      return res.status(400).json({ error: 'Content type is required' })
+    }
+
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' })
     }
 
     let filetype, rawText, parsedSpec
@@ -82,6 +91,25 @@ export default async function handler(req, res) {
     if (error) {
       console.error('Supabase error:', error)
       return res.status(500).json({ error: 'Failed to save to database' })
+    }
+
+    // Start chunking and embedding in background (don't block response)
+    if (parsedSpec && typeof parsedSpec === 'object' && parsedSpec.paths) {
+      console.log('📑 Starting RAG indexing pipeline for pasted spec...')
+      
+      // Run indexing asynchronously without blocking the response
+      try {
+        const chunks = await chunkSpec(parsedSpec)
+        const embeddedChunks = await embedChunks(chunks)
+        await storeChunks(supabase, data.id, userId, embeddedChunks)
+        console.log('✅ RAG indexing completed successfully')
+      } catch (indexError) {
+        // Log but don't block - the app will gracefully degrade to RAG fallback
+        console.error(
+          '⚠️ RAG indexing failed (app will degrade gracefully):',
+          indexError.message
+        )
+      }
     }
 
     res.status(200).json({ 

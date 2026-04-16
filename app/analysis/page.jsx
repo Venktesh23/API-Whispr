@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
+import AuthGuard from '../../components/AuthGuard'
 import { 
   ArrowLeft,
   Copy,
@@ -23,7 +24,9 @@ import {
   Zap,
   Database,
   Play,
-  Shield
+  Shield,
+  Share2,
+  X
 } from 'lucide-react'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
@@ -38,6 +41,7 @@ import SafeCodeDisplay from '../../components/SafeCodeDisplay'
 import SpecComparer from '../../components/SpecComparer'
 import ApiHealthScore from '../../components/ApiHealthScore'
 import AIFeatureShowcase from '../../components/AIFeatureShowcase'
+import RequestBuilderResult from '../../components/RequestBuilderResult'
 
 
 const ensureString = (value) => {
@@ -110,22 +114,21 @@ export default function AnalysisPage() {
   const [specWarnings, setSpecWarnings] = useState([])
   const [showSpecComparer, setShowSpecComparer] = useState(false)
   const [showFeatureShowcase, setShowFeatureShowcase] = useState(true)
+  const [activeLanguage, setActiveLanguage] = useState('curl')
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [shareLink, setShareLink] = useState('')
+  const [isSharing, setIsSharing] = useState(false)
+  const [shareCopied, setShareCopied] = useState(false)
+  
+  // Request Builder state
+  const [requestBuilderIntent, setRequestBuilderIntent] = useState('')
+  const [requestBuilderResult, setRequestBuilderResult] = useState(null)
+  const [isBuildingRequest, setIsBuildingRequest] = useState(false)
+  const [requestBuilderError, setRequestBuilderError] = useState('')
 
   useEffect(() => {
     console.log('🔍 Analysis page loading...')
     
-    const checkAuth = () => {
-      if (typeof window === 'undefined') return false
-      const isAuth = sessionStorage.getItem('isAuthenticated')
-      if (!isAuth) {
-        router.push('/login')
-        return false
-      }
-      return true
-    }
-
-    if (!checkAuth()) return
-
     const loadSpecData = () => {
       try {
         const storedSpec = sessionStorage.getItem('currentSpec')
@@ -279,6 +282,94 @@ export default function AnalysisPage() {
     setTimeout(() => setCopiedCode(''), 2000)
   }
 
+  const createShareLink = async () => {
+    if (!analysisData || !currentSpec || isSharing) return
+
+    setIsSharing(true)
+    try {
+      // Get auth token from Supabase session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError || !session?.access_token) {
+        alert('Please log in to create a share link')
+        setIsSharing(false)
+        return
+      }
+
+      const response = await fetch('/api/share', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          analysisData,
+          currentSpec,
+          specId: currentSpec.id || 'default',
+          expiresIn: 30, // 30 days
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create share link')
+      }
+
+      const data = await response.json()
+      setShareLink(data.shareUrl)
+      setShowShareModal(true)
+    } catch (err) {
+      console.error('Share error:', err)
+      alert('Failed to create share link: ' + err.message)
+    } finally {
+      setIsSharing(false)
+    }
+  }
+
+  const copyShareLink = () => {
+    if (shareLink) {
+      navigator.clipboard.writeText(shareLink)
+      setShareCopied(true)
+      setTimeout(() => setShareCopied(false), 2000)
+    }
+  }
+
+  const handleBuildRequest = async () => {
+    if (!requestBuilderIntent.trim()) return
+    
+    setIsBuildingRequest(true)
+    setRequestBuilderError('')
+    setRequestBuilderResult(null)
+
+    try {
+      const response = await fetch('/api/build-request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          intent: requestBuilderIntent,
+          spec: currentSpec?.parsed_spec || currentSpec
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed: ${response.status} ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.error) {
+        setRequestBuilderError(data.error)
+      } else {
+        setRequestBuilderResult(data)
+      }
+    } catch (err) {
+      console.error('Error building request:', err)
+      setRequestBuilderError(err.message || 'Failed to build request. Please try again.')
+    } finally {
+      setIsBuildingRequest(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0d0d0d] to-[#121212] flex items-center justify-center">
@@ -357,7 +448,8 @@ export default function AnalysisPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0d0d0d] to-[#121212] text-[#e0e0e0] font-['Inter',sans-serif] relative">
+    <AuthGuard>
+      <div className="min-h-screen bg-gradient-to-br from-[#0d0d0d] to-[#121212] text-[#e0e0e0] font-['Inter',sans-serif] relative">
       {/* Subtle background grid */}
       <div className="absolute inset-0 opacity-20" style={{
         backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(0, 255, 156, 0.1) 1px, transparent 0)',
@@ -397,6 +489,26 @@ export default function AnalysisPage() {
                 >
                   <Sparkles className="h-4 w-4" />
                   AI Features
+                </motion.button>
+                
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={createShareLink}
+                  disabled={isSharing}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-500 hover:to-gray-600 disabled:opacity-50 text-white font-medium rounded-lg transition-all duration-300"
+                >
+                  {isSharing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Share2 className="h-4 w-4" />
+                      Share
+                    </>
+                  )}
                 </motion.button>
                 
                 <motion.button
@@ -583,80 +695,63 @@ export default function AnalysisPage() {
               title="Ready-to-Use Code Examples" 
               icon={Code2}
             >
-              <div className="grid md:grid-cols-2 gap-6">
-                {analysisData.codeSnippets.curl && (
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-medium text-white">cURL</h3>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => copyToClipboard(ensureString(analysisData.codeSnippets.curl), 'curl')}
-                        className="flex items-center gap-2 px-3 py-1 bg-[#00FF9C]/10 border border-[#00FF9C] text-[#00FF9C] rounded-lg transition-all duration-300 text-sm font-medium hover:bg-[#00FF9C]/20 shadow-[0_0_6px_#00FF9C]"
-                      >
-                        {copiedCode === 'curl' ? (
-                          <>
-                            <CheckCircle className="h-4 w-4" />
-                            Copied!
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="h-4 w-4" />
-                            Copy
-                          </>
-                        )}
-                      </motion.button>
-                    </div>
-                    <div className="rounded-lg overflow-hidden border border-[#2a2a2a]">
-                      <SafeCodeDisplay
-                        code={analysisData.codeSnippets.curl}
-                        language="bash"
-                        customStyle={{
-                          margin: 0,
-                          background: '#0a0a0a',
-                          fontSize: '13px'
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-                
-                {analysisData.codeSnippets.python && (
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-medium text-white">Python</h3>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => copyToClipboard(ensureString(analysisData.codeSnippets.python), 'python')}
-                        className="flex items-center gap-2 px-3 py-1 bg-[#00FF9C]/10 border border-[#00FF9C] text-[#00FF9C] rounded-lg transition-all duration-300 text-sm font-medium hover:bg-[#00FF9C]/20 shadow-[0_0_6px_#00FF9C]"
-                      >
-                        {copiedCode === 'python' ? (
-                          <>
-                            <CheckCircle className="h-4 w-4" />
-                            Copied!
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="h-4 w-4" />
-                            Copy
-                          </>
-                        )}
-                      </motion.button>
-                    </div>
-                    <div className="rounded-lg overflow-hidden border border-[#2a2a2a]">
-                      <SafeCodeDisplay
-                        code={analysisData.codeSnippets.python}
-                        language="python"
-                        customStyle={{
-                          margin: 0,
-                          background: '#0a0a0a',
-                          fontSize: '13px'
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
+              {/* Language Tab Switcher */}
+              <div className="flex flex-wrap gap-2 mb-6 pb-4 border-b border-[#2a2a2a]">
+                {['curl', 'python', 'javascript', 'typescript', 'go'].map((lang) => (
+                  analysisData.codeSnippets[lang] && (
+                    <motion.button
+                      key={lang}
+                      onClick={() => setActiveLanguage(lang)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
+                        activeLanguage === lang
+                          ? 'bg-[#00FF9C] text-[#0d0d0d] shadow-[0_0_12px_#00FF9C]'
+                          : 'bg-[#1a1a1a] text-[#999] border border-[#2a2a2a] hover:border-[#00FF9C]/50'
+                      }`}
+                    >
+                      {lang.charAt(0).toUpperCase() + lang.slice(1)}
+                    </motion.button>
+                  )
+                ))}
+              </div>
+
+              {/* Code Display for Active Language */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium text-white">
+                    {activeLanguage.charAt(0).toUpperCase() + activeLanguage.slice(1)}
+                  </h3>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => copyToClipboard(ensureString(analysisData.codeSnippets[activeLanguage]), activeLanguage)}
+                    className="flex items-center gap-2 px-3 py-1 bg-[#00FF9C]/10 border border-[#00FF9C] text-[#00FF9C] rounded-lg transition-all duration-300 text-sm font-medium hover:bg-[#00FF9C]/20 shadow-[0_0_6px_#00FF9C]"
+                  >
+                    {copiedCode === activeLanguage ? (
+                      <>
+                        <CheckCircle className="h-4 w-4" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        Copy
+                      </>
+                    )}
+                  </motion.button>
+                </div>
+                <div className="rounded-lg overflow-hidden border border-[#2a2a2a]">
+                  <SafeCodeDisplay
+                    code={analysisData.codeSnippets[activeLanguage]}
+                    language={activeLanguage === 'curl' ? 'bash' : activeLanguage}
+                    customStyle={{
+                      margin: 0,
+                      background: '#0a0a0a',
+                      fontSize: '13px'
+                    }}
+                  />
+                </div>
               </div>
 
               {analysisData?.dataStructureExample && (
@@ -699,6 +794,70 @@ export default function AnalysisPage() {
                   </div>
                 </div>
               )}
+            </CollapsibleSection>
+          )}
+
+          {/* Request Builder */}
+          {parsedEndpoints.length > 0 && (
+            <CollapsibleSection 
+              title="Natural Language Request Builder" 
+              icon={Zap}
+            >
+              <div className="space-y-4">
+                <p className="text-gray-400 text-sm">
+                  Describe what you want to do in plain English, and we'll construct an HTTP request for you.
+                </p>
+                
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    value={requestBuilderIntent}
+                    onChange={(e) => setRequestBuilderIntent(e.target.value)}
+                    placeholder="e.g., 'Get all users with admin role' or 'Create a new product'"
+                    className="flex-1 px-4 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white placeholder-[#666] focus:outline-none focus:border-[#00FF9C]"
+                    disabled={isBuildingRequest}
+                  />
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleBuildRequest}
+                    disabled={!requestBuilderIntent.trim() || isBuildingRequest}
+                    className="px-6 py-2 bg-[#00FF9C] text-[#0d0d0d] rounded-lg font-medium hover:bg-[#00FF9C]/90 disabled:opacity-50 transition-colors flex items-center gap-2"
+                  >
+                    {isBuildingRequest ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Building...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="h-4 w-4" />
+                        Build Request
+                      </>
+                    )}
+                  </motion.button>
+                </div>
+
+                {requestBuilderError && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-3 bg-red-500/10 border border-red-400/30 rounded-lg text-red-300 text-sm"
+                  >
+                    {requestBuilderError}
+                  </motion.div>
+                )}
+
+                {requestBuilderResult && (
+                  <RequestBuilderResult 
+                    request={requestBuilderResult}
+                    onClose={() => {
+                      setRequestBuilderResult(null)
+                      setRequestBuilderIntent('')
+                    }}
+                  />
+                )}
+              </div>
             </CollapsibleSection>
           )}
 
@@ -753,7 +912,89 @@ export default function AnalysisPage() {
             />
           )}
         </AnimatePresence>
+
+        {/* Share Modal */}
+        <AnimatePresence>
+          {showShareModal && shareLink && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl w-full max-w-md p-8"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <Share2 className="h-6 w-6 text-[#00FF9C]" />
+                    Share Analysis
+                  </h2>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowShareModal(false)}
+                    className="p-1 hover:bg-[#2a2a2a] rounded-lg transition-colors"
+                  >
+                    <X className="h-5 w-5 text-gray-400" />
+                  </motion.button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-400 mb-2">Share this analysis with others:</p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={shareLink}
+                        readOnly
+                        className="flex-1 px-4 py-2 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg text-[#00FF9C] font-mono text-sm"
+                      />
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={copyShareLink}
+                        className="px-4 py-2 bg-[#00FF9C]/10 border border-[#00FF9C] text-[#00FF9C] rounded-lg font-medium hover:bg-[#00FF9C]/20 transition-all flex items-center gap-2"
+                      >
+                        {shareCopied ? (
+                          <>
+                            <CheckCircle className="h-4 w-4" />
+                            <span className="text-sm">Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4" />
+                            <span className="text-sm">Copy</span>
+                          </>
+                        )}
+                      </motion.button>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-[#00FF9C]/5 border border-[#00FF9C]/20 rounded-lg">
+                    <p className="text-xs text-gray-400 leading-relaxed">
+                      This link allows anyone to view your API analysis without authentication. The link will expire after 30 days.
+                    </p>
+                  </div>
+
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setShowShareModal(false)}
+                    className="w-full px-4 py-2 bg-[#00FF9C] text-[#0d0d0d] rounded-lg font-medium hover:bg-[#00FF9C]/90 transition-colors"
+                  >
+                    Done
+                  </motion.button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
+    </AuthGuard>
   )
 } 

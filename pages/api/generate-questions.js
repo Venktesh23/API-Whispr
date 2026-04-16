@@ -91,9 +91,8 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Generate questions error:', error)
-    res.status(500).json({ 
-      error: 'Failed to generate questions',
-      message: error.message 
+    return res.status(500).json({ 
+      error: 'Failed to generate questions'
     })
   }
 } 

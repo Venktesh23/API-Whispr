@@ -109,11 +109,10 @@ Issue: ${warning}`
     res.status(200).json(parsedResult)
 
   } catch (error) {
-    console.error('💥 Spec fix generation error:', error.message)
+    console.error('💥 Spec fix generation error:', error)
     
-    res.status(500).json({ 
-      error: 'Failed to generate spec fix',
-      message: error.message
+    return res.status(500).json({ 
+      error: 'Failed to generate spec fix'
     })
   }
 } 

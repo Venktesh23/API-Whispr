@@ -14,10 +14,12 @@ import {
   CheckCircle,
   Play,
   AlertCircle,
-  Info
+  Info,
+  Zap
 } from 'lucide-react'
 import SafeCodeDisplay from './SafeCodeDisplay'
 import EndpointPlayground from './EndpointPlayground'
+import TestCaseModal from './TestCaseModal'
 import AutoTagEndpoints from './AutoTagEndpoints'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
@@ -33,6 +35,7 @@ const methodColors = {
 export default function EndpointCard({ endpoint, currentSpec, index = 0 }) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [copiedCode, setCopiedCode] = useState('')
+  const [showTestModal, setShowTestModal] = useState(false)
 
   const getMethodColor = (method) => {
     const colors = {
@@ -234,7 +237,7 @@ export default function EndpointCard({ endpoint, currentSpec, index = 0 }) {
               )}
 
               {/* Action Buttons */}
-              <div className="flex gap-3 pt-4 border-t border-[#2a2a2a]">
+              <div className="flex gap-3 pt-4 border-t border-[#2a2a2a] flex-wrap">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -262,6 +265,16 @@ export default function EndpointCard({ endpoint, currentSpec, index = 0 }) {
                   <Play className="h-4 w-4" />
                   Test Endpoint
                 </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowTestModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white rounded-lg transition-all duration-300 text-sm font-medium"
+                >
+                  <Zap className="h-4 w-4" />
+                  Generate Tests
+                </motion.button>
               </div>
             </div>
           </motion.div>
@@ -286,6 +299,13 @@ export default function EndpointCard({ endpoint, currentSpec, index = 0 }) {
           console.log('Token captured:', token)
           // This will be handled by the playground component
         }}
+      />
+
+      {/* Test Case Generator Modal */}
+      <TestCaseModal
+        endpoint={endpoint}
+        onClose={() => setShowTestModal(false)}
+        isOpen={showTestModal}
       />
     </div>
   )

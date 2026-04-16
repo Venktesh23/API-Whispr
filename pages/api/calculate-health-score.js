@@ -127,7 +127,7 @@ export default async function handler(req, res) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-4-turbo-preview',
+            model: 'gpt-4-turbo',
             messages: [
               {
                 role: 'system',
@@ -178,11 +178,10 @@ ${endpoints.slice(0, 10).map(ep => `${ep.method} ${ep.path} - ${ep.summary || 'N
     res.status(200).json(result)
 
   } catch (error) {
-    console.error('💥 Health score calculation error:', error.message)
+    console.error('💥 Health score calculation error:', error)
     
-    res.status(500).json({ 
-      error: 'Failed to calculate health score',
-      message: error.message
+    return res.status(500).json({ 
+      error: 'Failed to calculate health score'
     })
   }
 } 

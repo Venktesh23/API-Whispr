@@ -100,7 +100,7 @@ Operation ID: ${endpoint.operationId || 'Not provided'}
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-4-turbo-preview',
+            model: 'gpt-4-turbo',
             messages: [
               {
                 role: 'system',
@@ -143,14 +143,13 @@ Nearby endpoints in the same spec might include similar functionality.`
     // Fallback to local generation
     const result = generateFallbackTag()
     console.log('✅ Tag generated locally:', result.tag)
-    res.status(200).json(result)
+    return res.status(200).json(result)
 
   } catch (error) {
-    console.error('💥 Tag generation error:', error.message)
+    console.error('💥 Tag generation error:', error)
     
-    res.status(500).json({ 
-      error: 'Failed to generate endpoint tag',
-      message: error.message
+    return res.status(500).json({ 
+      error: 'Failed to generate endpoint tag'
     })
   }
 } 

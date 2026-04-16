@@ -15,7 +15,8 @@ import {
   ChevronDown,
   FileCode,
   FileSpreadsheet,
-  Clipboard
+  Clipboard,
+  Link
 } from 'lucide-react'
 import { useSupabase } from '../../hooks/useSupabase'
 import { useChatContext } from '../../hooks/useChatContext'
@@ -91,6 +92,10 @@ export default function UploadPage() {
   const [selectedPasteType, setSelectedPasteType] = useState(PASTE_TYPES[0])
   const [showPasteDropdown, setShowPasteDropdown] = useState(false)
   const [pastedContent, setPastedContent] = useState('')
+  
+  // URL import mode states
+  const [specUrl, setSpecUrl] = useState('')
+  const [urlError, setUrlError] = useState('')
   
   // Common states
   const [isProcessing, setIsProcessing] = useState(false)
@@ -233,7 +238,6 @@ export default function UploadPage() {
       }
       
       sessionStorage.setItem('currentSpec', JSON.stringify(specData))
-      sessionStorage.setItem('isAuthenticated', 'true')
       
       console.log('✅ Upload complete, navigating to analysis...')
       router.push('/analysis')
@@ -315,7 +319,6 @@ export default function UploadPage() {
       }
       
       sessionStorage.setItem('currentSpec', JSON.stringify(specData))
-      sessionStorage.setItem('isAuthenticated', 'true')
       
       console.log('✅ Paste processing complete, navigating to analysis...')
       router.push('/analysis')
@@ -325,6 +328,105 @@ export default function UploadPage() {
       setAlert({
         type: 'error',
         message: error.message || 'Failed to process content. Please try again.'
+      })
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const handleUrlFetch = async () => {
+    if (!specUrl || !user || isProcessing) return
+    
+    // Validate URL
+    try {
+      new URL(specUrl)
+    } catch (e) {
+      setUrlError('Please enter a valid URL (e.g., https://api.example.com/openapi.json)')
+      return
+    }
+    
+    setIsProcessing(true)
+    setUrlError('')
+    setAlert({ type: '', message: '' })
+    
+    try {
+      // Step 1: Fetch spec from URL
+      const response = await fetch('/api/fetch-spec', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: specUrl }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to fetch URL')
+      }
+
+      // Step 2: Process the fetched content via paste API (reuse existing logic)
+      const pasteResponse = await fetch('/api/paste', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: result.content,
+          contentType: result.format,
+          userId: user.id,
+          filename: result.filename || `api-spec-${Date.now()}.${result.format}`
+        }),
+      })
+
+      const pasteResult = await pasteResponse.json()
+
+      if (!pasteResponse.ok) {
+        throw new Error(pasteResult.error || 'Failed to process specification')
+      }
+
+      console.log('✅ URL fetch and processing complete:', pasteResult.spec.id)
+
+      // Step 3: Fetch latest spec from Supabase
+      const { data: latestSpecs, error: fetchError } = await supabase
+        .from('api_specs')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (fetchError) {
+        console.error("❌ Failed to fetch latest spec:", fetchError)
+        throw new Error('Failed to retrieve specification')
+      }
+
+      if (!latestSpecs || latestSpecs.length === 0) {
+        throw new Error('No specification found after processing')
+      }
+
+      const latestSpec = latestSpecs[0]
+
+      // Step 4: Store and navigate
+      const specData = {
+        id: latestSpec.id,
+        filename: latestSpec.filename,
+        filetype: latestSpec.filetype,
+        parsed_spec: latestSpec.parsed_spec,
+        raw_text: latestSpec.raw_text,
+        question: 'Analyze this API specification'
+      }
+      
+      sessionStorage.setItem('currentSpec', JSON.stringify(specData))
+      
+      console.log('✅ URL import complete, navigating to analysis...')
+      router.push('/analysis')
+
+    } catch (error) {
+      console.error('❌ URL import error:', error)
+      setUrlError(error.message || 'Failed to import from URL. Please try again.')
+      setAlert({
+        type: 'error',
+        message: error.message || 'Failed to import specification from URL'
       })
     } finally {
       setIsProcessing(false)
@@ -428,6 +530,13 @@ export default function UploadPage() {
                   >
                     <Clipboard className="h-4 w-4" />
                     Paste Content
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('url')}
+                    className={tabButtonClass(activeTab === 'url')}
+                  >
+                    <Link className="h-4 w-4" />
+                    Import from URL
                   </button>
                 </div>
               </div>
@@ -615,7 +724,7 @@ export default function UploadPage() {
                             {isProcessing ? (
                               <>
                                 <Loader2 className="h-5 w-5 animate-spin" />
-                                Loading...
+                                Indexing spec for smart search...
                               </>
                             ) : (
                               <>
@@ -628,7 +737,7 @@ export default function UploadPage() {
                       </div>
                     )}
                   </div>
-                ) : (
+                ) : activeTab === 'paste' ? (
                   <div className="space-y-6">
                     {/* Content Type Selector */}
                     <div className="relative">
@@ -705,7 +814,7 @@ export default function UploadPage() {
                             {isProcessing ? (
                               <>
                                 <Loader2 className="h-5 w-5 animate-spin" />
-                                Loading...
+                                Indexing spec for smart search...
                               </>
                             ) : (
                               <>
@@ -718,7 +827,72 @@ export default function UploadPage() {
                       )}
                     </div>
                   </div>
-                )}
+            ) : activeTab === 'url' ? (
+              <div className="space-y-6">
+                {/* URL Input */}
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-300">
+                    API Specification URL
+                  </label>
+                  <div className="flex gap-3">
+                    <input
+                      type="url"
+                      value={specUrl}
+                      onChange={(e) => {
+                        setSpecUrl(e.target.value)
+                        setUrlError('')
+                      }}
+                      placeholder="https://api.example.com/openapi.json"
+                      className="flex-1 px-4 py-3 bg-gray-800/50 border border-gray-600/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-400/30 focus:border-gray-500/50 text-white placeholder-gray-500 text-sm"
+                      disabled={isProcessing}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleUrlFetch}
+                      disabled={isProcessing || !specUrl.trim()}
+                      className="bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                          Fetching...
+                        </>
+                      ) : (
+                        <>
+                          Fetch
+                          <ArrowRight className="h-5 w-5" />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  
+                  {urlError && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-sm text-red-400 flex items-center gap-2"
+                    >
+                      <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                      {urlError}
+                    </motion.p>
+                  )}
+                </div>
+
+                {/* Info Box */}
+                <div className="p-4 bg-gray-800/20 border border-gray-600/20 rounded-xl space-y-2">
+                  <p className="text-sm text-gray-300 font-medium">Supported URL formats:</p>
+                  <ul className="text-sm text-gray-400 space-y-1 ml-4">
+                    <li>• OpenAPI JSON specifications (.json)</li>
+                    <li>• OpenAPI YAML specifications (.yaml, .yml)</li>
+                    <li>• Swagger/OpenAPI 3.0+ specs</li>
+                    <li>• Direct links to spec files on GitHub, GitLab, etc.</li>
+                  </ul>
+                  <p className="text-xs text-gray-500 pt-2">
+                    Example: <code className="bg-gray-900/50 px-2 py-1 rounded text-[11px]">https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/petstore.json</code>
+                  </p>
+                </div>
+              </div>
+                ) : null}
               </div>
             </motion.div>
           </div>

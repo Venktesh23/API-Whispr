@@ -12,14 +12,22 @@ import {
   Minus,
   Edit,
   FileText,
-  AlertCircle
+  AlertCircle,
+  BookOpen,
+  LayoutList,
+  Columns
 } from 'lucide-react'
+import ChangelogModal from './ChangelogModal'
 
 export default function SpecComparer({ currentSpec, onClose }) {
   const [secondSpec, setSecondSpec] = useState('')
   const [isComparing, setIsComparing] = useState(false)
   const [comparisonResult, setComparisonResult] = useState(null)
   const [error, setError] = useState('')
+  const [showChangelogModal, setShowChangelogModal] = useState(false)
+  const [generatingChangelog, setGeneratingChangelog] = useState(false)
+  const [generatedChangelog, setGeneratedChangelog] = useState(null)
+  const [viewMode, setViewMode] = useState('list') // 'list' or 'diff'
 
   const handleSpecInput = (e) => {
     setSecondSpec(e.target.value)
@@ -71,6 +79,40 @@ export default function SpecComparer({ currentSpec, onClose }) {
       setError(err.message || 'Failed to compare specifications')
     } finally {
       setIsComparing(false)
+    }
+  }
+
+  const generateChangelog = async () => {
+    if (!comparisonResult) return
+
+    setGeneratingChangelog(true)
+    try {
+      const response = await fetch('/api/generate-changelog', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          originalFilename: currentSpec.filename,
+          newEndpoints: comparisonResult.newEndpoints || [],
+          removedEndpoints: comparisonResult.removedEndpoints || [],
+          modifiedEndpoints: comparisonResult.modifiedEndpoints || [],
+          version: '1.0.0',
+          date: new Date().toISOString().split('T')[0],
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate changelog')
+      }
+
+      const data = await response.json()
+      setGeneratedChangelog(data)
+      setShowChangelogModal(true)
+    } catch (err) {
+      setError(err.message || 'Failed to generate changelog')
+    } finally {
+      setGeneratingChangelog(false)
     }
   }
 
@@ -209,98 +251,268 @@ export default function SpecComparer({ currentSpec, onClose }) {
           ) : (
             /* Results Section */
             <div className="space-y-6">
-              {/* Summary */}
-              <div className="p-4 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-400/30 rounded-lg">
-                <h3 className="font-semibold text-cyan-200 mb-2">Comparison Summary</h3>
-                <p className="text-cyan-100">{comparisonResult.summary}</p>
+              {/* Summary with Severity Counts */}
+              <div className="space-y-4">
+                <div className="p-4 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-400/30 rounded-lg">
+                  <h3 className="font-semibold text-cyan-200 mb-2">Comparison Summary</h3>
+                  <p className="text-cyan-100">{comparisonResult.summary}</p>
+                </div>
+
+                {/* Severity Badges */}
+                <div className="grid md:grid-cols-3 gap-4">
+                  {typeof comparisonResult.breakingChanges !== 'undefined' && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="p-4 bg-red-500/10 border border-red-400/30 rounded-lg text-center"
+                    >
+                      <p className="text-red-400 font-semibold text-2xl">{comparisonResult.breakingChanges}</p>
+                      <p className="text-red-300 text-sm mt-1">Breaking Changes</p>
+                    </motion.div>
+                  )}
+                  
+                  {typeof comparisonResult.deprecations !== 'undefined' && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.1 }}
+                      className="p-4 bg-yellow-500/10 border border-yellow-400/30 rounded-lg text-center"
+                    >
+                      <p className="text-yellow-400 font-semibold text-2xl">{comparisonResult.deprecations}</p>
+                      <p className="text-yellow-300 text-sm mt-1">Deprecations</p>
+                    </motion.div>
+                  )}
+                  
+                  {typeof comparisonResult.nonBreakingChanges !== 'undefined' && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.2 }}
+                      className="p-4 bg-green-500/10 border border-green-400/30 rounded-lg text-center"
+                    >
+                      <p className="text-green-400 font-semibold text-2xl">{comparisonResult.nonBreakingChanges}</p>
+                      <p className="text-green-300 text-sm mt-1">Non-Breaking Changes</p>
+                    </motion.div>
+                  )}
+                </div>
               </div>
 
-              {/* Changes Grid */}
-              <div className="grid md:grid-cols-3 gap-6">
-                {/* New Endpoints */}
-                {comparisonResult.newEndpoints && comparisonResult.newEndpoints.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="font-semibold text-green-300 flex items-center gap-2">
-                      <Plus className="h-5 w-5" />
-                      New Endpoints ({comparisonResult.newEndpoints.length})
-                    </h4>
-                    <div className="space-y-2">
-                      {comparisonResult.newEndpoints.map((endpoint, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          className="p-3 bg-green-500/10 border border-green-400/30 rounded-lg"
-                        >
-                          <p className="font-medium text-green-300">
-                            {endpoint.method} {endpoint.path}
-                          </p>
-                          {endpoint.summary && (
-                            <p className="text-green-200/80 text-sm mt-1">{endpoint.summary}</p>
-                          )}
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Removed Endpoints */}
-                {comparisonResult.removedEndpoints && comparisonResult.removedEndpoints.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="font-semibold text-red-300 flex items-center gap-2">
-                      <Minus className="h-5 w-5" />
-                      Removed Endpoints ({comparisonResult.removedEndpoints.length})
-                    </h4>
-                    <div className="space-y-2">
-                      {comparisonResult.removedEndpoints.map((endpoint, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          className="p-3 bg-red-500/10 border border-red-400/30 rounded-lg"
-                        >
-                          <p className="font-medium text-red-300">
-                            {endpoint.method} {endpoint.path}
-                          </p>
-                          {endpoint.summary && (
-                            <p className="text-red-200/80 text-sm mt-1">{endpoint.summary}</p>
-                          )}
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Modified Endpoints */}
-                {comparisonResult.modifiedEndpoints && comparisonResult.modifiedEndpoints.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="font-semibold text-yellow-300 flex items-center gap-2">
-                      <Edit className="h-5 w-5" />
-                      Modified Endpoints ({comparisonResult.modifiedEndpoints.length})
-                    </h4>
-                    <div className="space-y-2">
-                      {comparisonResult.modifiedEndpoints.map((endpoint, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          className="p-3 bg-yellow-500/10 border border-yellow-400/30 rounded-lg"
-                        >
-                          <p className="font-medium text-yellow-300">
-                            {endpoint.method} {endpoint.path}
-                          </p>
-                          {endpoint.changes && (
-                            <p className="text-yellow-200/80 text-sm mt-1">{endpoint.changes}</p>
-                          )}
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              {/* View Mode Toggle */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
+                    viewMode === 'list'
+                      ? 'bg-cyan-500 text-white'
+                      : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
+                  }`}
+                >
+                  <LayoutList className="h-4 w-4" />
+                  List View
+                </button>
+                <button
+                  onClick={() => setViewMode('diff')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
+                    viewMode === 'diff'
+                      ? 'bg-cyan-500 text-white'
+                      : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
+                  }`}
+                >
+                  <Columns className="h-4 w-4" />
+                  Diff View
+                </button>
               </div>
+
+              {/* Changes Display - List View */}
+              {viewMode === 'list' && (
+                <div className="grid md:grid-cols-3 gap-6">
+                  {/* New Endpoints */}
+                  {comparisonResult.newEndpoints && comparisonResult.newEndpoints.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-green-300 flex items-center gap-2">
+                        <Plus className="h-5 w-5" />
+                        New Endpoints ({comparisonResult.newEndpoints.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {comparisonResult.newEndpoints.map((endpoint, index) => (
+                          <motion.div
+                            key={index}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            className="p-3 bg-green-500/10 border border-green-400/30 rounded-lg"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="font-medium text-green-300">
+                                {endpoint.method} {endpoint.path}
+                              </p>
+                              {endpoint.severity && (
+                                <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
+                                  endpoint.severity === 'BREAKING' ? 'bg-red-500/20 text-red-300 border border-red-400/50' :
+                                  endpoint.severity === 'DEPRECATION' ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-400/50' :
+                                  'bg-green-500/20 text-green-300 border border-green-400/50'
+                                }`}>
+                                  {endpoint.severity}
+                                </span>
+                              )}
+                            </div>
+                            {endpoint.summary && (
+                              <p className="text-green-200/80 text-sm mt-2">{endpoint.summary}</p>
+                            )}
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Removed Endpoints */}
+                  {comparisonResult.removedEndpoints && comparisonResult.removedEndpoints.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-red-300 flex items-center gap-2">
+                        <Minus className="h-5 w-5" />
+                        Removed Endpoints ({comparisonResult.removedEndpoints.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {comparisonResult.removedEndpoints.map((endpoint, index) => (
+                          <motion.div
+                            key={index}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            className="p-3 bg-red-500/10 border border-red-400/30 rounded-lg"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="font-medium text-red-300">
+                                {endpoint.method} {endpoint.path}
+                              </p>
+                              {endpoint.severity && (
+                                <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
+                                  endpoint.severity === 'BREAKING' ? 'bg-red-500/20 text-red-300 border border-red-400/50' :
+                                  endpoint.severity === 'DEPRECATION' ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-400/50' :
+                                  'bg-green-500/20 text-green-300 border border-green-400/50'
+                                }`}>
+                                  {endpoint.severity}
+                                </span>
+                              )}
+                            </div>
+                            {endpoint.summary && (
+                              <p className="text-red-200/80 text-sm mt-2">{endpoint.summary}</p>
+                            )}
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Modified Endpoints */}
+                  {comparisonResult.modifiedEndpoints && comparisonResult.modifiedEndpoints.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-yellow-300 flex items-center gap-2">
+                        <Edit className="h-5 w-5" />
+                        Modified Endpoints ({comparisonResult.modifiedEndpoints.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {comparisonResult.modifiedEndpoints.map((endpoint, index) => (
+                          <motion.div
+                            key={index}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            className="p-3 bg-yellow-500/10 border border-yellow-400/30 rounded-lg"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="font-medium text-yellow-300">
+                                {endpoint.method} {endpoint.path}
+                              </p>
+                              {endpoint.severity && (
+                                <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
+                                  endpoint.severity === 'BREAKING' ? 'bg-red-500/20 text-red-300 border border-red-400/50' :
+                                  endpoint.severity === 'DEPRECATION' ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-400/50' :
+                                  'bg-green-500/20 text-green-300 border border-green-400/50'
+                                }`}>
+                                  {endpoint.severity}
+                                </span>
+                              )}
+                            </div>
+                            {endpoint.changes && (
+                              <p className="text-yellow-200/80 text-sm mt-2">{endpoint.changes}</p>
+                            )}
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Changes Display - Diff View */}
+              {viewMode === 'diff' && (
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {/* Removed/Modified - Left Side */}
+                    <div>
+                      <h4 className="text-sm font-semibold text-red-300 mb-3 sticky top-0 bg-[#111] py-2">
+                        Removed/Modified
+                      </h4>
+                      <div className="space-y-2">
+                        {/* Removed */}
+                        {comparisonResult.removedEndpoints && comparisonResult.removedEndpoints.map((endpoint, idx) => (
+                          <motion.div
+                            key={`removed-${idx}`}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="p-2 bg-red-500/10 border border-red-400/30 rounded text-xs font-mono text-red-300"
+                          >
+                            <span className="text-red-500">−</span> {endpoint.method} {endpoint.path}
+                          </motion.div>
+                        ))}
+                        {/* Modified - Old Version */}
+                        {comparisonResult.modifiedEndpoints && comparisonResult.modifiedEndpoints.map((endpoint, idx) => (
+                          <motion.div
+                            key={`modified-old-${idx}`}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="p-2 bg-yellow-500/10 border border-yellow-400/30 rounded text-xs font-mono text-yellow-300"
+                          >
+                            <span className="text-yellow-500">~</span> {endpoint.method} {endpoint.path}
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Added/Modified - Right Side */}
+                    <div>
+                      <h4 className="text-sm font-semibold text-green-300 mb-3 sticky top-0 bg-[#111] py-2">
+                        Added/Modified
+                      </h4>
+                      <div className="space-y-2">
+                        {/* Added */}
+                        {comparisonResult.newEndpoints && comparisonResult.newEndpoints.map((endpoint, idx) => (
+                          <motion.div
+                            key={`added-${idx}`}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="p-2 bg-green-500/10 border border-green-400/30 rounded text-xs font-mono text-green-300"
+                          >
+                            <span className="text-green-400">+</span> {endpoint.method} {endpoint.path}
+                          </motion.div>
+                        ))}
+                        {/* Modified - New Version */}
+                        {comparisonResult.modifiedEndpoints && comparisonResult.modifiedEndpoints.map((endpoint, idx) => (
+                          <motion.div
+                            key={`modified-new-${idx}`}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="p-2 bg-yellow-500/10 border border-yellow-400/30 rounded text-xs font-mono text-yellow-300"
+                          >
+                            <span className="text-yellow-500">~</span> {endpoint.method} {endpoint.path}
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Detailed Analysis */}
               {comparisonResult.detailedAnalysis && (
@@ -314,7 +526,27 @@ export default function SpecComparer({ currentSpec, onClose }) {
                 </div>
               )}
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={generateChangelog}
+                  disabled={generatingChangelog}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:opacity-50 text-white rounded-xl transition-all duration-200 font-medium flex items-center gap-2"
+                >
+                  {generatingChangelog ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <BookOpen className="h-4 w-4" />
+                      Generate Changelog
+                    </>
+                  )}
+                </motion.button>
+
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -338,6 +570,16 @@ export default function SpecComparer({ currentSpec, onClose }) {
             </div>
           )}
         </div>
+
+        {/* Changelog Modal */}
+        <ChangelogModal
+          isOpen={showChangelogModal}
+          onClose={() => setShowChangelogModal(false)}
+          changelog={generatedChangelog?.changelog}
+          version={generatedChangelog?.version}
+          date={generatedChangelog?.date}
+          changeStats={generatedChangelog?.changeStats}
+        />
       </motion.div>
     </motion.div>
   )

@@ -10,7 +10,8 @@ import {
   Bot, 
   User,
   Minimize2,
-  Maximize2
+  Maximize2,
+  Zap
 } from 'lucide-react'
 
 export default function ChatAssistant({ currentSpec }) {
@@ -19,6 +20,7 @@ export default function ChatAssistant({ currentSpec }) {
   const [currentMessage, setCurrentMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
+  const [ragActive, setRagActive] = useState(false)
 
   const sendMessage = async () => {
     if (!currentMessage.trim() || isLoading) return
@@ -31,15 +33,17 @@ export default function ChatAssistant({ currentSpec }) {
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/analyze', {
+      const response = await fetch('/api/ask', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           question: userMessage,
-          specContent: JSON.stringify(currentSpec?.parsed_spec || currentSpec?.raw_text),
-          specType: currentSpec?.filetype || 'unknown'
+          spec: currentSpec?.parsed_spec || currentSpec?.raw_text,
+          specType: currentSpec?.filetype || 'unknown',
+          specId: currentSpec?.id, // For RAG retrieval
+          userId: currentSpec?.user_id, // For RAG retrieval
         }),
       })
 
@@ -47,15 +51,65 @@ export default function ChatAssistant({ currentSpec }) {
         throw new Error('Failed to get response')
       }
 
-      const data = await response.json()
+      let assistantContent = ''
       
-      // Add AI response
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: data.answer || 'I apologize, but I couldn\'t process your request.',
-        data: data
-      }])
+      // Handle streaming response
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let firstChunk = true
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value)
+        const lines = chunk.split('\n')
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+              
+              // Check for RAG indicator
+              if (data.ragEnabled) {
+                setRagActive(true)
+              }
+              
+              if (data.text) {
+                assistantContent += data.text
+                
+                // Update message in real-time for first chunk
+                if (firstChunk) {
+                  setMessages(prev => [...prev, { 
+                    role: 'assistant', 
+                    content: data.text 
+                  }])
+                  firstChunk = false
+                } else {
+                  // Update last message
+                  setMessages(prev => {
+                    const updated = [...prev]
+                    updated[updated.length - 1].content = assistantContent
+                    return updated
+                  })
+                }
+              }
+              
+              if (data.error) {
+                setMessages(prev => [...prev, { 
+                  role: 'assistant', 
+                  content: `Error: ${data.error}`
+                }])
+                break
+              }
+            } catch (e) {
+              // Skip parse errors
+            }
+          }
+        }
+      }
     } catch (error) {
+      console.error('Chat error:', error)
       setMessages(prev => [...prev, { 
         role: 'assistant', 
         content: 'Sorry, I encountered an error. Please try again.'
@@ -214,7 +268,21 @@ export default function ChatAssistant({ currentSpec }) {
                   </div>
 
                   {/* Input */}
-                  <div className="p-4 border-t border-gray-700/30">
+                  <div className="p-4 border-t border-gray-700/30 space-y-3">
+                    {/* RAG Badge */}
+                    {ragActive && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-center gap-2 text-xs"
+                      >
+                        <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-500/20 border border-blue-500/30 rounded-full">
+                          <Zap className="h-3 w-3 text-blue-400" />
+                          <span className="text-blue-200 font-medium">RAG Enhanced</span>
+                        </div>
+                        <span className="text-gray-500 text-xs">Searching your API docs</span>
+                      </motion.div>
+                    )}
                     <div className="flex gap-2">
                       <textarea
                         value={currentMessage}
@@ -228,7 +296,7 @@ export default function ChatAssistant({ currentSpec }) {
                       <button
                         onClick={sendMessage}
                         disabled={!currentMessage.trim() || isLoading}
-                        className="px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-500 hover:to-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 flex items-center justify-center"
+                        className="px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-500 hover:to-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 flex items-center justify-center h-fit"
                       >
                         <Send className="h-4 w-4" />
                       </button>

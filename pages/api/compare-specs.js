@@ -1,22 +1,31 @@
-const SPEC_COMPARISON_SYSTEM_PROMPT = `You are an expert at analyzing OpenAPI specifications. Compare two API specs and identify all differences in endpoints, parameters, methods, status codes, and descriptions.
+const SPEC_COMPARISON_SYSTEM_PROMPT = `You are an expert at analyzing OpenAPI specifications. Compare two API specs and identify all differences in endpoints, parameters, methods, status codes, and descriptions. Classify each change by SEVERITY LEVEL.
+
+SEVERITY LEVELS:
+- BREAKING: Changes that break API contracts (removed endpoints, removed required parameters, response type changes, status code removals, required becoming optional)
+- DEPRECATION: Fields/endpoints marked as deprecated, planned removals
+- NON_BREAKING: Safe changes (new endpoints, new optional parameters, new response fields, documentation updates)
 
 Return exactly this JSON format:
 {
   "newEndpoints": [
-    {"method": "POST", "path": "/auth/register", "summary": "User registration endpoint"}
+    {"method": "POST", "path": "/auth/register", "summary": "User registration endpoint", "severity": "NON_BREAKING"}
   ],
   "removedEndpoints": [
-    {"method": "DELETE", "path": "/admin/users", "summary": "Admin user deletion endpoint"}
+    {"method": "DELETE", "path": "/admin/users", "summary": "Admin user deletion endpoint", "severity": "BREAKING"}
   ],
   "modifiedEndpoints": [
     {
       "method": "GET", 
       "path": "/users/{id}", 
-      "changes": "Added new 'include' query parameter for profile data"
+      "changes": "Added new 'include' query parameter for profile data",
+      "severity": "NON_BREAKING"
     }
   ],
-  "summary": "3 new endpoints, 1 removed, 2 modified",
-  "detailedAnalysis": "The new specification introduces enhanced user management features..."
+  "summary": "3 new endpoints (NON_BREAKING), 1 removed (BREAKING), 2 modified (NON_BREAKING)",
+  "detailedAnalysis": "The new specification introduces enhanced user management features...",
+  "breakingChanges": 1,
+  "deprecations": 0,
+  "nonBreakingChanges": 5
 }
 
 Focus on:
@@ -34,12 +43,17 @@ export default async function handler(req, res) {
   try {
     const { originalSpec, newSpec, originalFilename, specType } = req.body
 
-    if (!originalSpec || !newSpec) {
-      return res.status(400).json({ error: 'Both original and new specifications are required' })
+    if (!originalSpec) {
+      return res.status(400).json({ error: 'Original specification is required' })
+    }
+
+    if (!newSpec) {
+      return res.status(400).json({ error: 'New specification is required' })
     }
 
     if (!process.env.OPENAI_API_KEY) {
-      return res.status(500).json({ error: 'OpenAI API key not configured' })
+      console.error('OpenAI API key not configured')
+      return res.status(500).json({ error: 'Configuration error' })
     }
 
     console.log('🔄 Comparing API specifications with GPT...')
@@ -51,7 +65,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4-turbo-preview',
+        model: 'gpt-4-turbo',
         messages: [
           {
             role: 'system',
@@ -101,18 +115,35 @@ Please identify all differences in endpoints, parameters, methods, response sche
       const hasModifiedEndpoints = result.toLowerCase().includes('modified') || result.toLowerCase().includes('changed')
       
       parsedResult = {
-        newEndpoints: hasNewEndpoints ? [{ method: 'Unknown', path: '/example', summary: 'New endpoint detected' }] : [],
-        removedEndpoints: hasRemovedEndpoints ? [{ method: 'Unknown', path: '/example', summary: 'Removed endpoint detected' }] : [],
-        modifiedEndpoints: hasModifiedEndpoints ? [{ method: 'Unknown', path: '/example', changes: 'Modifications detected' }] : [],
+        newEndpoints: hasNewEndpoints ? [{ method: 'Unknown', path: '/example', summary: 'New endpoint detected', severity: 'NON_BREAKING' }] : [],
+        removedEndpoints: hasRemovedEndpoints ? [{ method: 'Unknown', path: '/example', summary: 'Removed endpoint detected', severity: 'BREAKING' }] : [],
+        modifiedEndpoints: hasModifiedEndpoints ? [{ method: 'Unknown', path: '/example', changes: 'Modifications detected', severity: 'NON_BREAKING' }] : [],
         summary: 'Differences detected between specifications',
-        detailedAnalysis: result.substring(0, 1000) + (result.length > 1000 ? '...' : '')
+        detailedAnalysis: result.substring(0, 1000) + (result.length > 1000 ? '...' : ''),
+        breakingChanges: hasRemovedEndpoints ? 1 : 0,
+        deprecations: 0,
+        nonBreakingChanges: (hasNewEndpoints ? 1 : 0) + (hasModifiedEndpoints ? 1 : 0)
       }
     }
 
-    // Ensure arrays exist
+    // Ensure arrays exist and add severity counts if missing
     parsedResult.newEndpoints = parsedResult.newEndpoints || []
     parsedResult.removedEndpoints = parsedResult.removedEndpoints || []
     parsedResult.modifiedEndpoints = parsedResult.modifiedEndpoints || []
+    
+    // Calculate severity counts if not provided
+    if (!parsedResult.breakingChanges) {
+      parsedResult.breakingChanges = parsedResult.removedEndpoints.filter(e => e.severity === 'BREAKING').length +
+                                      parsedResult.modifiedEndpoints.filter(e => e.severity === 'BREAKING').length
+    }
+    if (!parsedResult.deprecations) {
+      parsedResult.deprecations = parsedResult.removedEndpoints.filter(e => e.severity === 'DEPRECATION').length +
+                                   parsedResult.modifiedEndpoints.filter(e => e.severity === 'DEPRECATION').length
+    }
+    if (!parsedResult.nonBreakingChanges) {
+      parsedResult.nonBreakingChanges = parsedResult.newEndpoints.filter(e => e.severity === 'NON_BREAKING').length +
+                                        parsedResult.modifiedEndpoints.filter(e => e.severity === 'NON_BREAKING').length
+    }
 
     console.log('✅ Spec comparison completed successfully')
     res.status(200).json(parsedResult)
@@ -120,9 +151,8 @@ Please identify all differences in endpoints, parameters, methods, response sche
   } catch (error) {
     console.error('💥 Spec comparison error:', error.message)
     
-    res.status(500).json({ 
-      error: 'Failed to compare specifications',
-      message: error.message
+    return res.status(500).json({ 
+      error: 'Failed to compare specifications'
     })
   }
 } 

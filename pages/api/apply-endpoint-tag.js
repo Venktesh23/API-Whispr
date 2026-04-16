@@ -36,11 +36,10 @@ export default async function handler(req, res) {
     })
 
   } catch (error) {
-    console.error('💥 Apply endpoint tag error:', error.message)
+    console.error('💥 Apply endpoint tag error:', error)
     
-    res.status(500).json({ 
-      error: 'Failed to apply endpoint tag',
-      message: error.message
+    return res.status(500).json({ 
+      error: 'Failed to apply endpoint tag'
     })
   }
 } 

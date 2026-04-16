@@ -5,6 +5,7 @@ import yaml from 'js-yaml'
 import pdf from 'pdf-parse'
 import SwaggerParser from 'swagger-parser'
 import { createClient } from '@supabase/supabase-js'
+import { chunkSpec, embedChunks, storeChunks } from '../../lib/embeddings'
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -41,8 +42,12 @@ export default async function handler(req, res) {
     const userId = Array.isArray(fields.userId) ? fields.userId[0] : fields.userId
     const fileType = Array.isArray(fields.fileType) ? fields.fileType[0] : fields.fileType
 
-    if (!file || !userId) {
-      return res.status(400).json({ error: 'File and userId are required' })
+    if (!file) {
+      return res.status(400).json({ error: 'File is required' })
+    }
+
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' })
     }
 
     // Read file content
@@ -121,6 +126,26 @@ export default async function handler(req, res) {
 
     // Clean up temporary file
     fs.unlinkSync(file.filepath)
+
+    // Start chunking and embedding in background (don't block response)
+    // This helps with UX - user can proceed to analysis while indexing happens
+    if (parsedSpec && typeof parsedSpec === 'object' && parsedSpec.paths) {
+      console.log('📑 Starting RAG indexing pipeline for spec...')
+      
+      // Run indexing asynchronously without blocking the response
+      try {
+        const chunks = await chunkSpec(parsedSpec)
+        const embeddedChunks = await embedChunks(chunks)
+        await storeChunks(supabase, data.id, userId, embeddedChunks)
+        console.log('✅ RAG indexing completed successfully')
+      } catch (indexError) {
+        // Log but don't block - the app will gracefully degrade to RAG fallback
+        console.error(
+          '⚠️ RAG indexing failed (app will degrade gracefully):',
+          indexError.message
+        )
+      }
+    }
 
     res.status(200).json({ 
       spec: data,

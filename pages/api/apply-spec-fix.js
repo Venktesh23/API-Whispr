@@ -35,11 +35,10 @@ export default async function handler(req, res) {
     })
 
   } catch (error) {
-    console.error('💥 Apply spec fix error:', error.message)
+    console.error('💥 Apply spec fix error:', error)
     
-    res.status(500).json({ 
-      error: 'Failed to apply spec fix',
-      message: error.message
+    return res.status(500).json({ 
+      error: 'Failed to apply spec fix'
     })
   }
 } 

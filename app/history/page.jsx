@@ -186,7 +186,7 @@ export default function HistoryPage() {
         <div className="absolute inset-0 opacity-20">
           <div className="absolute inset-0" 
                style={{
-                 backgroundImage: `radial-gradient(circle at 1px 1px, #00FF9C 1px, transparent 0)`,
+                 backgroundImage: `radial-gradient(circle at 1px 1px, #666666 1px, transparent 0)`,
                  backgroundSize: '50px 50px'
                }} 
           />
@@ -195,7 +195,7 @@ export default function HistoryPage() {
         {/* Background Elements */}
         <div className="absolute inset-0 overflow-hidden z-0">
           <motion.div
-            className="absolute w-72 h-72 bg-[#00FF9C]/8 blur-3xl rounded-full top-[-100px] right-[-100px] pointer-events-none"
+            className="absolute w-72 h-72 bg-gray-600/8 blur-3xl rounded-full top-[-100px] right-[-100px] pointer-events-none"
             animate={{ y: [0, 20, 0], x: [0, -10, 0] }}
             transition={{ duration: 12, repeat: Infinity }}
           />
@@ -231,7 +231,7 @@ export default function HistoryPage() {
             >
               <div className="flex items-center justify-center gap-3 mb-4">
                 <div className="w-12 h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-xl flex items-center justify-center border border-gray-500/30 shadow-lg">
-                  <History className="h-6 w-6 text-[#00FF9C]" />
+                  <History className="h-6 w-6 text-gray-300" />
                 </div>
                 <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-200 to-gray-400">
                   Analysis History

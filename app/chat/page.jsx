@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
+import ReactMarkdown from 'react-markdown'
 import { 
   Send, 
   Loader2, 
@@ -96,7 +97,14 @@ export default function ChatPage() {
     const userMessage = currentMessage
     setCurrentMessage('')
     setMessages(prev => [...prev, { role: 'user', content: userMessage, timestamp: new Date().toISOString() }])
+    
+    // Add empty assistant message that will be populated by stream
+    const assistantTimestamp = new Date().toISOString()
+    const emptyAssistantMessage = { role: 'assistant', content: '', timestamp: assistantTimestamp, streaming: true }
+    setMessages(prev => [...prev, emptyAssistantMessage])
     setIsLoading(true)
+    
+    let fullAnswer = ''
     
     try {
       const response = await fetch('/api/ask', {
@@ -113,26 +121,78 @@ export default function ChatPage() {
       
       if (!response.ok) throw new Error('Failed to get response')
       
-      const data = await response.json()
-      const assistantMessage = { role: 'assistant', content: data.answer, timestamp: new Date().toISOString() }
+      // Read the stream
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
       
-      setMessages(prev => [...prev, assistantMessage])
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        
+        const chunk = decoder.decode(value)
+        const lines = chunk.split('\n').filter(line => line.startsWith('data: '))
+        
+        for (const line of lines) {
+          const data = JSON.parse(line.replace('data: ', ''))
+          
+          if (data.done) {
+            // Stream finished
+            continue
+          }
+          
+          if (data.error) {
+            throw new Error(data.error)
+          }
+          
+          if (data.text) {
+            fullAnswer += data.text
+            // Update the last message with new content
+            setMessages(prev => {
+              const updated = [...prev]
+              const lastIdx = updated.length - 1
+              if (lastIdx >= 0 && updated[lastIdx].role === 'assistant') {
+                updated[lastIdx] = {
+                  ...updated[lastIdx],
+                  content: fullAnswer,
+                  streaming: false // Mark as not streaming once we have content
+                }
+              }
+              return updated
+            })
+          }
+        }
+      }
       
-      // Save to database
+      // Save to database after streaming completes
       await supabase
         .from('chat_history')
         .insert({
           user_id: user.id,
           spec_id: currentSpec.id,
           question: userMessage,
-          answer: data.answer
+          answer: fullAnswer
         })
       
+      // Mark streaming as complete
+      setMessages(prev => {
+        const updated = [...prev]
+        const lastIdx = updated.length - 1
+        if (lastIdx >= 0 && updated[lastIdx].role === 'assistant') {
+          updated[lastIdx] = {
+            ...updated[lastIdx],
+            streaming: false
+          }
+        }
+        return updated
+      })
+      
     } catch (error) {
+      console.error('Chat error:', error)
       setMessages(prev => [...prev, { 
         role: 'assistant', 
         content: 'Sorry, I encountered an error. Please try again.', 
-        timestamp: new Date().toISOString() 
+        timestamp: new Date().toISOString(),
+        streaming: false
       }])
     } finally {
       setIsLoading(false)
@@ -148,15 +208,6 @@ export default function ChatPage() {
       .delete()
       .eq('spec_id', currentSpec.id)
       .eq('user_id', user.id)
-  }
-
-  const formatMessage = (content) => {
-    // Simple formatting - you can enhance this
-    return content.split('\n').map((line, i) => (
-      <p key={i} className="mb-2 last:mb-0">
-        {line}
-      </p>
-    ))
   }
 
   return (
@@ -313,7 +364,33 @@ export default function ChatPage() {
                           : 'bg-gradient-to-br from-gray-800/50 to-gray-900/50 text-gray-200'
                       }`}>
                         <div className="prose prose-sm prose-invert max-w-none">
-                          {formatMessage(message.content)}
+                          <ReactMarkdown 
+                            components={{
+                              h1: ({...props}) => <h1 className="text-lg font-bold mb-2" {...props} />,
+                              h2: ({...props}) => <h2 className="text-base font-bold mb-2" {...props} />,
+                              h3: ({...props}) => <h3 className="text-sm font-bold mb-2" {...props} />,
+                              p: ({...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                              strong: ({...props}) => <strong className="font-semibold" {...props} />,
+                              em: ({...props}) => <em className="italic" {...props} />,
+                              code: ({inline, ...props}) => inline ? (
+                                <code className="bg-gray-700/50 px-1.5 py-0.5 rounded text-sm font-mono" {...props} />
+                              ) : (
+                                <code className="bg-gray-700/50 px-3 py-2 rounded block text-sm font-mono overflow-x-auto mb-2" {...props} />
+                              ),
+                              pre: ({...props}) => <pre className="bg-gray-900/50 border border-gray-600 rounded p-3 overflow-x-auto mb-2" {...props} />,
+                              ul: ({...props}) => <ul className="list-disc list-inside mb-2 space-y-1" {...props} />,
+                              ol: ({...props}) => <ol className="list-decimal list-inside mb-2 space-y-1" {...props} />,
+                              li: ({...props}) => <li className="ml-2" {...props} />,
+                              a: ({...props}) => <a className="text-blue-400 hover:text-blue-300 underline" {...props} />,
+                              blockquote: ({...props}) => <blockquote className="border-l-4 border-gray-500 pl-4 italic mb-2" {...props} />,
+                              table: ({...props}) => <table className="border-collapse border border-gray-600 mb-2 text-sm" {...props} />,
+                              thead: ({...props}) => <thead className="bg-gray-700/30" {...props} />,
+                              td: ({...props}) => <td className="border border-gray-600 px-3 py-2" {...props} />,
+                              th: ({...props}) => <th className="border border-gray-600 px-3 py-2 text-left font-semibold" {...props} />,
+                            }}
+                          >
+                            {message.content}{message.streaming && <span className="animate-pulse">▌</span>}
+                          </ReactMarkdown>
                         </div>
                       </div>
                     </div>
