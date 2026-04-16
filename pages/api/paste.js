@@ -8,12 +8,14 @@ const supabase = createClient(
 )
 
 export default async function handler(req, res) {
+  res.setHeader('Content-Type', 'application/json')
+  
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
   try {
-    const { content, contentType, userId, filename } = req.body
+    const { content, contentType, userId, filename } = req.body || {}
 
     if (!content) {
       return res.status(400).json({ error: 'Content is required' })
@@ -61,10 +63,15 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Unsupported content type' })
       }
     } catch (parseError) {
-      console.error('Parse error:', parseError)
+      console.error('Parse error:', parseError.message)
       return res.status(400).json({ 
         error: `Failed to parse ${contentType.toUpperCase()} content. Please check the syntax.` 
       })
+    }
+
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('Missing Supabase configuration')
+      return res.status(500).json({ error: 'Server configuration error' })
     }
 
     const { data, error } = await supabase
@@ -80,8 +87,12 @@ export default async function handler(req, res) {
       .single()
 
     if (error) {
-      console.error('Supabase error:', error)
-      return res.status(500).json({ error: 'Failed to save to database' })
+      console.error('Supabase insert error:', error.message, error.details)
+      return res.status(500).json({ error: 'Failed to save specification. Please try again.' })
+    }
+
+    if (!data) {
+      return res.status(500).json({ error: 'Failed to retrieve saved specification' })
     }
 
     return res.status(200).json({ 
@@ -90,7 +101,7 @@ export default async function handler(req, res) {
     })
 
   } catch (error) {
-    console.error('Paste processing error:', error)
-    return res.status(500).json({ error: 'Internal server error' })
+    console.error('Paste API error:', error.message)
+    return res.status(500).json({ error: `Server error: ${error.message}` })
   }
 } 

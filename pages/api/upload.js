@@ -24,6 +24,8 @@ async function parseDocx(buffer) {
 }
 
 export default async function handler(req, res) {
+  res.setHeader('Content-Type', 'application/json')
+  
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
@@ -91,8 +93,13 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Unsupported file type' })
       }
     } catch (parseError) {
-      console.error('Parse error:', parseError)
+      console.error('Parse error:', parseError.message)
       return res.status(400).json({ error: 'Failed to parse file content. Please check the file format.' })
+    }
+
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('Missing Supabase configuration')
+      return res.status(500).json({ error: 'Server configuration error' })
     }
 
     const { data, error } = await supabase
@@ -108,11 +115,21 @@ export default async function handler(req, res) {
       .single()
 
     if (error) {
-      console.error('Supabase error:', error)
-      return res.status(500).json({ error: 'Failed to save to database' })
+      console.error('Supabase insert error:', error.message, error.details)
+      return res.status(500).json({ error: 'Failed to save specification. Please try again.' })
     }
 
-    fs.unlinkSync(file.filepath)
+    if (file?.filepath) {
+      try {
+        fs.unlinkSync(file.filepath)
+      } catch (unlinkError) {
+        console.warn('Failed to delete temp file:', unlinkError.message)
+      }
+    }
+
+    if (!data) {
+      return res.status(500).json({ error: 'Failed to retrieve saved specification' })
+    }
 
     return res.status(200).json({ 
       spec: data,
@@ -120,7 +137,7 @@ export default async function handler(req, res) {
     })
 
   } catch (error) {
-    console.error('Upload error:', error)
-    return res.status(500).json({ error: 'Internal server error' })
+    console.error('Upload API error:', error.message)
+    return res.status(500).json({ error: `Server error: ${error.message}` })
   }
 } 
