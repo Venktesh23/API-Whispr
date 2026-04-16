@@ -6,15 +6,15 @@ Upload your API specs, chat with your API in plain English, generate code, creat
 
 ## Features
 
-- **🤖 AI Chat Interface** - Ask questions about your API in natural language
-- **📤 Multi-Format Upload** - OpenAPI specs (YAML/JSON), PDF, DOCX, or paste raw content
-- **🔍 Smart Analysis** - Instant endpoint analysis with health scoring and metrics
-- **💻 Code Generation** - Generate ready-to-use code in Python, TypeScript, JavaScript, Go, and cURL
-- **🧪 Test Generation** - Auto-generate test suites in Jest, Pytest, or Postman collections
-- **🔄 Spec Comparison** - Side-by-side comparison to detect breaking changes and deprecations
-- **📊 Project History** - All your previous analyses saved and easily accessible
-- **🔐 Secure & Private** - End-to-end encrypted with Supabase authentication
-- **📱 Dark Theme Design** - Modern, minimalist UI optimized for all devices
+- **AI Chat Interface** - Ask questions about your API in natural language
+- **Multi-Format Upload** - OpenAPI specs (YAML/JSON), PDF, DOCX, or paste raw content
+- **Smart Analysis** - Instant endpoint analysis with health scoring and metrics
+- **Code Generation** - Generate ready-to-use code in Python, TypeScript, JavaScript, Go, and cURL
+- **Test Generation** - Auto-generate test suites in Jest, Pytest, or Postman collections
+- **Spec Comparison** - Side-by-side comparison to detect breaking changes and deprecations
+- **Project History** - All your previous analyses saved and easily accessible
+- **Secure & Private** - End-to-end encrypted with Supabase authentication
+- **Dark Theme Design** - Modern, minimalist UI optimized for all devices
 
 ## Getting Started
 
@@ -117,7 +117,7 @@ MIT License - see LICENSE file for details
 
 ---
 
-Made with ❤️ for developers who love working with APIs`
+Made with care for developers who love working with APIs`
 
 ## Available Scripts
 
