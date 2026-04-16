@@ -1,7 +1,6 @@
 import yaml from 'js-yaml'
 import SwaggerParser from 'swagger-parser'
 import { createClient } from '@supabase/supabase-js'
-import { chunkSpec, embedChunks, storeChunks } from '../../lib/embeddings'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -34,35 +33,28 @@ export default async function handler(req, res) {
       rawText = content.trim()
       
       if (contentType === 'json') {
-        // Parse and validate JSON
         const jsonData = JSON.parse(rawText)
         
-        // Try to validate as OpenAPI spec
         try {
           const validatedSpec = await SwaggerParser.validate(jsonData)
           parsedSpec = validatedSpec
         } catch (validationError) {
-          // If not a valid OpenAPI spec, store as generic JSON
           parsedSpec = jsonData
         }
         
         filetype = 'json'
       } else if (contentType === 'yaml') {
-        // Parse and validate YAML
         const yamlData = yaml.load(rawText)
         
-        // Try to validate as OpenAPI spec
         try {
           const validatedSpec = await SwaggerParser.validate(yamlData)
           parsedSpec = validatedSpec
         } catch (validationError) {
-          // If not a valid OpenAPI spec, store as generic YAML
           parsedSpec = yamlData
         }
         
         filetype = 'yaml'
       } else if (contentType === 'text') {
-        // Plain text content
         filetype = 'text'
         parsedSpec = null
       } else {
@@ -75,7 +67,6 @@ export default async function handler(req, res) {
       })
     }
 
-    // Save to Supabase
     const { data, error } = await supabase
       .from('api_specs')
       .insert({
@@ -93,30 +84,13 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to save to database' })
     }
 
-    const response = { 
+    return res.status(200).json({ 
       spec: data,
       info: parsedSpec?.info || null
-    }
-
-    if (parsedSpec && typeof parsedSpec === 'object' && parsedSpec.paths) {
-      console.log('Starting RAG indexing pipeline for pasted spec in background...')
-      
-      process.nextTick(async () => {
-        try {
-          const chunks = await chunkSpec(parsedSpec)
-          const embeddedChunks = await embedChunks(chunks)
-          await storeChunks(supabase, data.id, userId, embeddedChunks)
-          console.log('RAG indexing completed successfully')
-        } catch (indexError) {
-          console.error('RAG indexing failed:', indexError.message)
-        }
-      })
-    }
-
-    return res.status(200).json(response)
+    })
 
   } catch (error) {
     console.error('Paste processing error:', error)
-    res.status(500).json({ error: 'Internal server error' })
+    return res.status(500).json({ error: 'Internal server error' })
   }
 } 

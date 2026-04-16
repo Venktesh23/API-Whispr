@@ -5,9 +5,7 @@ import yaml from 'js-yaml'
 import pdf from 'pdf-parse'
 import SwaggerParser from 'swagger-parser'
 import { createClient } from '@supabase/supabase-js'
-import { chunkSpec, embedChunks, storeChunks } from '../../lib/embeddings'
 
-// Initialize Supabase client
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -20,7 +18,6 @@ export const config = {
 }
 
 async function parseDocx(buffer) {
-  // You'll need to install mammoth for DOCX parsing
   const mammoth = await import('mammoth')
   const result = await mammoth.extractRawText({ buffer })
   return result.value
@@ -33,7 +30,7 @@ export default async function handler(req, res) {
 
   try {
     const form = formidable({
-      maxFileSize: 10 * 1024 * 1024, // 10MB
+      maxFileSize: 10 * 1024 * 1024,
       keepExtensions: true,
     })
 
@@ -50,7 +47,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'User ID is required' })
     }
 
-    // Read file content
     const fileContent = fs.readFileSync(file.filepath)
     const filename = file.originalFilename || 'unknown'
     const fileExtension = path.extname(filename).toLowerCase()
@@ -59,7 +55,6 @@ export default async function handler(req, res) {
 
     try {
       if (fileExtension === '.pdf') {
-        // Parse PDF
         const pdfData = await pdf(fileContent)
         filetype = 'pdf'
         rawText = pdfData.text
@@ -69,31 +64,25 @@ export default async function handler(req, res) {
         filetype = 'docx'
         parsedSpec = null
       } else if (fileExtension === '.json') {
-        // Parse JSON with swagger-parser for better OpenAPI validation
         rawText = fileContent.toString('utf8')
         const jsonData = JSON.parse(rawText)
         
-        // Try to validate as OpenAPI spec
         try {
           const validatedSpec = await SwaggerParser.validate(jsonData)
           parsedSpec = validatedSpec
         } catch (validationError) {
-          // If not a valid OpenAPI spec, store as generic JSON
           parsedSpec = jsonData
         }
         
         filetype = 'json'
       } else if (fileExtension === '.yaml' || fileExtension === '.yml') {
-        // Parse YAML with swagger-parser for better OpenAPI validation
         rawText = fileContent.toString('utf8')
         const yamlData = yaml.load(rawText)
         
-        // Try to validate as OpenAPI spec
         try {
           const validatedSpec = await SwaggerParser.validate(yamlData)
           parsedSpec = validatedSpec
         } catch (validationError) {
-          // If not a valid OpenAPI spec, store as generic YAML
           parsedSpec = yamlData
         }
         
@@ -106,7 +95,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Failed to parse file content. Please check the file format.' })
     }
 
-    // Save to Supabase
     const { data, error } = await supabase
       .from('api_specs')
       .insert({
@@ -126,30 +114,13 @@ export default async function handler(req, res) {
 
     fs.unlinkSync(file.filepath)
 
-    const response = { 
+    return res.status(200).json({ 
       spec: data,
       info: parsedSpec?.info || null
-    }
-
-    if (parsedSpec && typeof parsedSpec === 'object' && parsedSpec.paths) {
-      console.log('Starting RAG indexing pipeline for spec in background...')
-      
-      process.nextTick(async () => {
-        try {
-          const chunks = await chunkSpec(parsedSpec)
-          const embeddedChunks = await embedChunks(chunks)
-          await storeChunks(supabase, data.id, userId, embeddedChunks)
-          console.log('RAG indexing completed successfully')
-        } catch (indexError) {
-          console.error('RAG indexing failed:', indexError.message)
-        }
-      })
-    }
-
-    return res.status(200).json(response)
+    })
 
   } catch (error) {
     console.error('Upload error:', error)
-    res.status(500).json({ error: 'Internal server error' })
+    return res.status(500).json({ error: 'Internal server error' })
   }
 } 
