@@ -64,7 +64,7 @@ export default function HistoryPage() {
       setIsLoading(true)
       
       const { data, error } = await supabase
-        .from('uploaded_specs')
+        .from('api_specs')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -102,7 +102,7 @@ export default function HistoryPage() {
   const handleDeleteAnalysis = async (analysisId) => {
     try {
       const { error } = await supabase
-        .from('uploaded_specs')
+        .from('api_specs')
         .delete()
         .eq('id', analysisId)
         .eq('user_id', user.id)
@@ -131,7 +131,7 @@ export default function HistoryPage() {
   const getFileTypeColor = (filetype) => {
     switch (filetype) {
       case 'openapi':
-        return 'text-[#00FF9C]'
+        return 'text-gray-300'
       case 'docx':
         return 'text-blue-400'
       case 'pdf':
@@ -289,7 +289,7 @@ export default function HistoryPage() {
                                 setShowFilterDropdown(false)
                               }}
                               className={`w-full p-3 text-left flex items-center gap-3 hover:bg-gray-700/30 transition-all duration-200 first:rounded-t-xl last:rounded-b-xl ${
-                                selectedFilter === option.id ? 'bg-gray-700/40 text-[#00FF9C]' : 'text-gray-300'
+                                selectedFilter === option.id ? 'bg-gray-700/40 text-gray-300' : 'text-gray-300'
                               }`}
                             >
                               <option.icon className="h-4 w-4" />
@@ -326,7 +326,7 @@ export default function HistoryPage() {
                                 setShowSortDropdown(false)
                               }}
                               className={`w-full p-3 text-left hover:bg-gray-700/30 transition-all duration-200 first:rounded-t-xl last:rounded-b-xl ${
-                                selectedSort === option.id ? 'bg-gray-700/40 text-[#00FF9C]' : 'text-gray-300'
+                                selectedSort === option.id ? 'bg-gray-700/40 text-gray-300' : 'text-gray-300'
                               }`}
                             >
                               {option.label}
@@ -349,7 +349,7 @@ export default function HistoryPage() {
             >
               {isLoading ? (
                 <div className="text-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-[#00FF9C] mx-auto mb-4" />
+                  <Loader2 className="h-8 w-8 animate-spin text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-400">Loading...</p>
                 </div>
               ) : filteredAndSortedAnalyses.length === 0 ? (
@@ -386,14 +386,14 @@ export default function HistoryPage() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: index * 0.1 }}
-                        className="bg-gradient-to-br from-gray-900/40 to-gray-800/40 backdrop-blur-xl border border-gray-600/30 rounded-2xl p-6 hover:border-[#00FF9C]/30 transition-all duration-300 group cursor-pointer"
+                        className="bg-gradient-to-br from-gray-900/40 to-gray-800/40 backdrop-blur-xl border border-gray-600/30 rounded-2xl p-6 hover:border-gray-500/30 transition-all duration-300 group cursor-pointer"
                         onClick={() => handleAnalysisClick(analysis)}
                         whileHover={{ y: -2 }}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4 flex-1">
-                            <div className={`w-12 h-12 bg-gradient-to-br from-gray-700/20 to-gray-800/20 rounded-xl flex items-center justify-center border border-gray-600/30 group-hover:border-[#00FF9C]/30 transition-all duration-300`}>
-                              <IconComponent className={`h-6 w-6 ${getFileTypeColor(analysis.filetype)} group-hover:text-[#00FF9C] transition-colors duration-300`} />
+                            <div className={`w-12 h-12 bg-gradient-to-br from-gray-700/20 to-gray-800/20 rounded-xl flex items-center justify-center border border-gray-600/30 group-hover:border-gray-500/30 transition-all duration-300`}>
+                              <IconComponent className={`h-6 w-6 ${getFileTypeColor(analysis.filetype)} group-hover:text-gray-200 transition-colors duration-300`} />
                             </div>
                             
                             <div className="flex-1">
@@ -434,7 +434,7 @@ export default function HistoryPage() {
                               <Trash2 className="h-4 w-4" />
                             </motion.button>
                             
-                            <div className="flex items-center gap-2 text-[#00FF9C] font-medium">
+                            <div className="flex items-center gap-2 text-gray-300 font-medium">
                               <span className="text-sm">View Analysis</span>
                               <ArrowRight className="h-4 w-4" />
                             </div>

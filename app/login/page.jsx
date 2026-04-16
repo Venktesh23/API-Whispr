@@ -18,10 +18,7 @@ import { useSupabase } from '../../hooks/useSupabase'
 import WorkflowAnimation from '../../components/WorkflowAnimation'
 
 export default function LoginPage() {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  })
+  const [formData, setFormData] = useState({ email: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
@@ -30,7 +27,6 @@ export default function LoginPage() {
   const router = useRouter()
   const { user, loading, signUp, signIn } = useSupabase()
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (!loading && user) {
       router.push('/upload')
@@ -41,7 +37,6 @@ export default function LoginPage() {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
     
-    // Clear field error when user starts typing
     if (fieldErrors[name]) {
       setFieldErrors(prev => ({ ...prev, [name]: '' }))
     }
@@ -75,13 +70,10 @@ export default function LoginPage() {
     setAlert({ type: '', message: '' })
 
     try {
-      // First try to sign in
       const { data: signInData, error: signInError } = await signIn(formData.email, formData.password)
       
       if (signInError) {
-        // If sign in fails, check if it's because user doesn't exist
         if (signInError.message === 'Invalid login credentials') {
-          // Try to sign up the user
           const { data: signUpData, error: signUpError } = await signUp(formData.email, formData.password)
           
           if (signUpError) {
@@ -96,7 +88,6 @@ export default function LoginPage() {
           throw signInError
         }
       } else {
-        // Sign in successful
         setAlert({
           type: 'success',
           message: 'Welcome back! Redirecting...'
@@ -116,7 +107,6 @@ export default function LoginPage() {
     }
   }
 
-  // Show loading spinner while checking auth state
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -134,9 +124,7 @@ export default function LoginPage() {
       </Head>
 
       <div className="min-h-screen bg-black text-white font-['Inter',sans-serif] relative">
-        {/* Simple Background */}
         <div className="absolute inset-0 z-0">
-          {/* Subtle grid pattern */}
           <div 
             className="absolute inset-0 opacity-[0.02]"
             style={{
@@ -149,14 +137,11 @@ export default function LoginPage() {
           />
         </div>
 
-        {/* Main Content */}
         <div className="relative z-10 min-h-screen">
           <div className="container mx-auto px-6 py-8 h-screen">
             <div className="grid lg:grid-cols-2 gap-12 h-full items-center">
               
-              {/* Left Panel - Branding */}
               <div className="space-y-8 lg:pr-8">
-                {/* Logo */}
                 <div className="flex items-center gap-4">
                   <div className="relative">
                     <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-3 rounded-2xl border border-gray-700/50">
@@ -168,7 +153,6 @@ export default function LoginPage() {
                   </h1>
                 </div>
 
-                {/* Main Headline */}
                 <div className="space-y-6">
                   <h2 className="text-5xl lg:text-6xl font-bold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-gray-100 to-gray-300">
                     From Schema to Clarity — Instantly
@@ -179,24 +163,20 @@ export default function LoginPage() {
                   </p>
                 </div>
 
-                {/* Workflow Animation */}
                 <div className="pt-4">
                   <WorkflowAnimation />
                 </div>
               </div>
 
-              {/* Right Panel - Login Form */}
               <div className="flex justify-center lg:justify-start lg:pl-8">
                 <div className="w-full max-w-md">
                   <div className="bg-gradient-to-br from-zinc-900/95 to-black/95 backdrop-blur-xl border border-zinc-700/30 rounded-2xl p-8 shadow-2xl hover:shadow-black/50 transition-all duration-300 hover:border-zinc-600/40">
                     
-                    {/* Form Header */}
                     <div className="text-center mb-8">
                       <h3 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-300 mb-3 tracking-tight">Welcome Back</h3>
                       <p className="text-gray-400 text-base font-medium">Enter your credentials to access API Whispr</p>
                     </div>
 
-                    {/* Alert Messages */}
                     {alert.message && (
                       <div
                         className={`mb-6 p-4 rounded-xl border flex items-center gap-3 ${
@@ -214,9 +194,7 @@ export default function LoginPage() {
                       </div>
                     )}
 
-                    {/* Login Form */}
                     <form onSubmit={handleSubmit} className="space-y-6">
-                      {/* Email Field */}
                       <div>
                         <label htmlFor="email" className="block text-base font-semibold text-gray-200 mb-3">
                           Email Address
@@ -245,7 +223,6 @@ export default function LoginPage() {
                         )}
                       </div>
 
-                      {/* Password Field */}
                       <div>
                         <label htmlFor="password" className="block text-base font-semibold text-gray-200 mb-3">
                           Password
@@ -281,7 +258,6 @@ export default function LoginPage() {
                         )}
                       </div>
 
-                      {/* Sign In Button */}
                       <button
                         type="submit"
                         disabled={isLoading}
@@ -304,7 +280,6 @@ export default function LoginPage() {
                       </button>
                     </form>
 
-                    {/* Footer Links */}
                     <div className="mt-8 text-center space-y-3">
                       <p className="text-sm text-gray-500 font-medium">
                         New user? Account will be created automatically

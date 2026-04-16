@@ -205,18 +205,14 @@ export default function UploadPage() {
         throw new Error(result.error || 'Upload failed')
       }
 
-      console.log('✅ Upload API success:', result.spec.id)
-
-      // Step 2: ✅ FETCH LATEST SPEC WITH PROPER SUPABASE CLIENT
       const { data: latestSpecs, error: fetchError } = await supabase
         .from('api_specs')
         .select('*')
-        .eq('user_id', user.id) // ✅ Filter by current user
-        .order('created_at', { ascending: false }) // ✅ Correct order syntax
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
         .limit(1)
 
       if (fetchError) {
-        console.error("❌ Failed to fetch latest spec:", fetchError)
         throw new Error('Failed to retrieve uploaded specification')
       }
 
@@ -225,9 +221,6 @@ export default function UploadPage() {
       }
 
       const latestSpec = latestSpecs[0]
-      console.log('✅ Fetched latest spec:', latestSpec.id)
-
-      // Step 3: Store and navigate
       const specData = {
         id: latestSpec.id,
         filename: latestSpec.filename,
@@ -239,7 +232,6 @@ export default function UploadPage() {
       
       sessionStorage.setItem('currentSpec', JSON.stringify(specData))
       
-      console.log('✅ Upload complete, navigating to analysis...')
       router.push('/analysis')
 
     } catch (error) {
@@ -285,19 +277,17 @@ export default function UploadPage() {
       if (!response.ok) {
         throw new Error(result.error || 'Processing failed')
       }
+      console.log('Paste API success:', result.spec.id)
 
-      console.log('✅ Paste API success:', result.spec.id)
-
-      // Step 2: ✅ FETCH LATEST SPEC WITH PROPER SUPABASE CLIENT
       const { data: latestSpecs, error: fetchError } = await supabase
         .from('api_specs')
         .select('*')
-        .eq('user_id', user.id) // ✅ Filter by current user
-        .order('created_at', { ascending: false }) // ✅ Correct order syntax
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
         .limit(1)
 
       if (fetchError) {
-        console.error("❌ Failed to fetch latest spec:", fetchError)
+        console.error("Failed to fetch latest spec:", fetchError)
         throw new Error('Failed to retrieve processed specification')
       }
 
@@ -306,9 +296,8 @@ export default function UploadPage() {
       }
 
       const latestSpec = latestSpecs[0]
-      console.log('✅ Fetched latest spec:', latestSpec.id)
+      console.log('Fetched latest spec:', latestSpec.id)
 
-      // Step 3: Store and navigate
       const specData = {
         id: latestSpec.id,
         filename: latestSpec.filename,
@@ -320,11 +309,10 @@ export default function UploadPage() {
       
       sessionStorage.setItem('currentSpec', JSON.stringify(specData))
       
-      console.log('✅ Paste processing complete, navigating to analysis...')
       router.push('/analysis')
 
     } catch (error) {
-      console.error('❌ Paste error:', error)
+      console.error('Paste error:', error)
       setAlert({
         type: 'error',
         message: error.message || 'Failed to process content. Please try again.'
@@ -385,9 +373,8 @@ export default function UploadPage() {
         throw new Error(pasteResult.error || 'Failed to process specification')
       }
 
-      console.log('✅ URL fetch and processing complete:', pasteResult.spec.id)
+      console.log('URL fetch and processing complete:', pasteResult.spec.id)
 
-      // Step 3: Fetch latest spec from Supabase
       const { data: latestSpecs, error: fetchError } = await supabase
         .from('api_specs')
         .select('*')
@@ -396,7 +383,7 @@ export default function UploadPage() {
         .limit(1)
 
       if (fetchError) {
-        console.error("❌ Failed to fetch latest spec:", fetchError)
+        console.error("Failed to fetch latest spec:", fetchError)
         throw new Error('Failed to retrieve specification')
       }
 
@@ -406,7 +393,6 @@ export default function UploadPage() {
 
       const latestSpec = latestSpecs[0]
 
-      // Step 4: Store and navigate
       const specData = {
         id: latestSpec.id,
         filename: latestSpec.filename,
@@ -418,11 +404,10 @@ export default function UploadPage() {
       
       sessionStorage.setItem('currentSpec', JSON.stringify(specData))
       
-      console.log('✅ URL import complete, navigating to analysis...')
       router.push('/analysis')
 
     } catch (error) {
-      console.error('❌ URL import error:', error)
+      console.error('URL import error:', error)
       setUrlError(error.message || 'Failed to import from URL. Please try again.')
       setAlert({
         type: 'error',
