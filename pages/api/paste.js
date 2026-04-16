@@ -93,29 +93,24 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to save to database' })
     }
 
-    // Start chunking and embedding in background (don't block response)
-    if (parsedSpec && typeof parsedSpec === 'object' && parsedSpec.paths) {
-      console.log('📑 Starting RAG indexing pipeline for pasted spec...')
-      
-      // Run indexing asynchronously without blocking the response
-      try {
-        const chunks = await chunkSpec(parsedSpec)
-        const embeddedChunks = await embedChunks(chunks)
-        await storeChunks(supabase, data.id, userId, embeddedChunks)
-        console.log('✅ RAG indexing completed successfully')
-      } catch (indexError) {
-        // Log but don't block - the app will gracefully degrade to RAG fallback
-        console.error(
-          '⚠️ RAG indexing failed (app will degrade gracefully):',
-          indexError.message
-        )
-      }
-    }
-
     res.status(200).json({ 
       spec: data,
       info: parsedSpec?.info || null
     })
+
+    if (parsedSpec && typeof parsedSpec === 'object' && parsedSpec.paths) {
+      console.log('Starting RAG indexing pipeline for pasted spec in background...')
+      
+      setTimeout(async () => {
+        try {
+          const chunks = await chunkSpec(parsedSpec)
+          const embeddedChunks = await embedChunks(chunks)
+          await storeChunks(supabase, data.id, userId, embeddedChunks)
+          console.log('RAG indexing completed successfully')
+        } catch (indexError) {
+          console.error('RAG indexing failed (degrading gracefully):', indexError.message)
+        }
+      }, 0)
 
   } catch (error) {
     console.error('Paste processing error:', error)
