@@ -14,7 +14,7 @@ build/
 .env.production.local
 
 # Database schema (sensitive - do not push to public repo)
-supabase/schema.sql
+supabase/
 
 # Vercel deployment files
 .vercel
