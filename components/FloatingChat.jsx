@@ -69,14 +69,65 @@ export default function FloatingChat() {
       
       if (!response.ok) throw new Error('Failed to get response')
       
-      const data = await response.json()
+      // Handle SSE streaming response from /api/ask
+      let assistantContent = ''
+      let firstChunk = true
       
-      setIsTyping(false)
-      setChatMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: data.answer, 
-        timestamp: new Date().toISOString() 
-      }])
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value)
+        const lines = chunk.split('\n')
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+              
+              if (data.text) {
+                assistantContent += data.text
+                
+                // Update message in real-time for first chunk
+                if (firstChunk) {
+                  setIsTyping(false)
+                  setChatMessages(prev => [...prev, { 
+                    role: 'assistant', 
+                    content: data.text, 
+                    timestamp: new Date().toISOString() 
+                  }])
+                  firstChunk = false
+                } else {
+                  // Update last message with accumulated content
+                  setChatMessages(prev => {
+                    const updated = [...prev]
+                    if (updated[updated.length - 1]?.role === 'assistant') {
+                      updated[updated.length - 1].content = assistantContent
+                    }
+                    return updated
+                  })
+                }
+              }
+              
+              if (data.error) {
+                setIsTyping(false)
+                setChatMessages(prev => [...prev, { 
+                  role: 'assistant', 
+                  content: `Error: ${data.error}`, 
+                  timestamp: new Date().toISOString() 
+                }])
+                break
+              }
+            } catch (e) {
+              // Skip JSON parse errors
+              console.debug('Failed to parse SSE data:', e)
+            }
+          }
+        }
+      }
       
     } catch (error) {
       setIsTyping(false)
