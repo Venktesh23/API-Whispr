@@ -11,7 +11,19 @@ import { useSupabase } from '../../hooks/useSupabase'
 export default function ProfilePage() {
   const [specs, setSpecs] = useState([])
   const [chatHistory, setChatHistory] = useState([])
+  const [chatCounts, setChatCounts] = useState({})
   const router = useRouter()
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
 
   useEffect(() => {
     // TODO: Load user's specs and chat history from Supabase
@@ -52,6 +64,14 @@ export default function ProfilePage() {
       }
     ])
   }, [])
+
+  useEffect(() => {
+    const counts = {}
+    chatHistory.forEach(chat => {
+      counts[chat.specId] = (counts[chat.specId] || 0) + 1
+    })
+    setChatCounts(counts)
+  }, [chatHistory])
 
   const deleteSpec = (specId) => {
     setSpecs(prev => prev.filter(spec => spec.id !== specId))

@@ -79,6 +79,11 @@ const PASTE_TYPES = [
   }
 ]
 
+/** Routes using lib/api-utils `successResponse` return `{ success, data: { spec, ... } }`. */
+function savedSpecFromPasteApi(json) {
+  return json?.data?.spec ?? json?.spec ?? null
+}
+
 export default function UploadPage() {
   const [activeTab, setActiveTab] = useState('upload')
   
@@ -278,34 +283,20 @@ export default function UploadPage() {
       if (!response.ok) {
         throw new Error(result.error || 'Processing failed')
       }
-      console.log('Paste API success:', result.spec.id)
 
-      const { data: latestSpecs, error: fetchError } = await supabase
-        .from('api_specs')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-
-      if (fetchError) {
-        console.error("Failed to fetch latest spec:", fetchError)
-        throw new Error('Failed to retrieve processed specification')
+      const savedSpec = savedSpecFromPasteApi(result)
+      if (!savedSpec?.id) {
+        throw new Error(result.error || 'Invalid response from server')
       }
-
-      if (!latestSpecs || latestSpecs.length === 0) {
-        throw new Error('No specification found after processing')
-      }
-
-      const latestSpec = latestSpecs[0]
-      console.log('Fetched latest spec:', latestSpec.id)
+      console.log('Paste API success:', savedSpec.id)
 
       const specData = {
-        id: latestSpec.id,
+        id: savedSpec.id,
         user_id: user.id,
-        filename: latestSpec.filename,
-        filetype: latestSpec.filetype,
-        parsed_spec: latestSpec.parsed_spec,
-        raw_text: latestSpec.raw_text,
+        filename: savedSpec.filename,
+        filetype: savedSpec.filetype,
+        parsed_spec: savedSpec.parsed_spec,
+        raw_text: savedSpec.raw_text,
         question: 'Analyze this API specification'
       }
 
@@ -375,33 +366,19 @@ export default function UploadPage() {
         throw new Error(pasteResult.error || 'Failed to process specification')
       }
 
-      console.log('URL fetch and processing complete:', pasteResult.spec.id)
-
-      const { data: latestSpecs, error: fetchError } = await supabase
-        .from('api_specs')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-
-      if (fetchError) {
-        console.error("Failed to fetch latest spec:", fetchError)
-        throw new Error('Failed to retrieve specification')
+      const savedSpec = savedSpecFromPasteApi(pasteResult)
+      if (!savedSpec?.id) {
+        throw new Error(pasteResult.error || 'Invalid response from server')
       }
-
-      if (!latestSpecs || latestSpecs.length === 0) {
-        throw new Error('No specification found after processing')
-      }
-
-      const latestSpec = latestSpecs[0]
+      console.log('URL fetch and processing complete:', savedSpec.id)
 
       const specData = {
-        id: latestSpec.id,
+        id: savedSpec.id,
         user_id: user.id,
-        filename: latestSpec.filename,
-        filetype: latestSpec.filetype,
-        parsed_spec: latestSpec.parsed_spec,
-        raw_text: latestSpec.raw_text,
+        filename: savedSpec.filename,
+        filetype: savedSpec.filetype,
+        parsed_spec: savedSpec.parsed_spec,
+        raw_text: savedSpec.raw_text,
         question: 'Analyze this API specification'
       }
 

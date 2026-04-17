@@ -28,11 +28,6 @@ export default function TopNavigation() {
 
   const profileMenuItems = [
     {
-      icon: User,
-      label: 'Profile',
-      action: () => router.push('/profile')
-    },
-    {
       icon: Upload,
       label: 'Upload New Spec',
       action: () => router.push('/upload')

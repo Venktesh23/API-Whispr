@@ -18,14 +18,23 @@ import { useSupabase } from '../../hooks/useSupabase'
 import WorkflowAnimation from '../../components/WorkflowAnimation'
 
 export default function LoginPage() {
-  const [formData, setFormData] = useState({ email: '', password: '' })
+  const [authMode, setAuthMode] = useState('signin')
+  const [formData, setFormData] = useState({ email: '', password: '', confirmPassword: '' })
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
   const [alert, setAlert] = useState({ type: '', message: '' })
   
   const router = useRouter()
-  const { user, loading, signUp, signIn } = useSupabase()
+  const { user, loading, signIn, signUp } = useSupabase()
+
+  const switchMode = (next) => {
+    setAuthMode(next)
+    setAlert({ type: '', message: '' })
+    setFieldErrors({})
+    setFormData({ email: '', password: '', confirmPassword: '' })
+  }
 
   useEffect(() => {
     if (!loading && user) {
@@ -48,13 +57,21 @@ export default function LoginPage() {
     if (!formData.email) {
       errors.email = 'Email is required'
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = 'Please enter a valid email address'
+      errors.email = 'Email is incorrect.'
     }
     
     if (!formData.password) {
       errors.password = 'Password is required'
     } else if (formData.password.length < 6) {
       errors.password = 'Password must be at least 6 characters'
+    }
+
+    if (authMode === 'signup') {
+      if (!formData.confirmPassword) {
+        errors.confirmPassword = 'Please confirm your password'
+      } else if (formData.confirmPassword !== formData.password) {
+        errors.confirmPassword = 'Passwords do not match'
+      }
     }
     
     setFieldErrors(errors)
@@ -70,22 +87,58 @@ export default function LoginPage() {
     setAlert({ type: '', message: '' })
 
     try {
-      const { data: signInData, error: signInError } = await signIn(formData.email, formData.password)
+      if (authMode === 'signup') {
+        const { error: signUpError } = await signUp(formData.email, formData.password)
+        if (signUpError) {
+          const message =
+            signUpError.message?.includes('already registered') ||
+            signUpError.message?.toLowerCase()?.includes('already been registered')
+              ? 'An account with this email already exists. Sign in instead.'
+              : signUpError.message || 'Could not create account. Please try again.'
+          setAlert({ type: 'error', message })
+        } else {
+          setAlert({
+            type: 'success',
+            message: 'Account created! Check your email to verify, then sign in.'
+          })
+        }
+        return
+      }
+
+      const { error: signInError } = await signIn(formData.email, formData.password)
       
       if (signInError) {
         if (signInError.message === 'Invalid login credentials') {
-          const { data: signUpData, error: signUpError } = await signUp(formData.email, formData.password)
-          
-          if (signUpError) {
-            throw signUpError
+          try {
+            const lookupRes = await fetch('/api/auth/lookup-email', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: formData.email.trim() }),
+            })
+            if (lookupRes.ok) {
+              const { registered } = await lookupRes.json()
+              setAlert({
+                type: 'error',
+                message: registered ? 'Password is wrong.' : 'Email is not registered.',
+              })
+            } else {
+              setAlert({
+                type: 'error',
+                message:
+                  'Invalid email or password. Please try again.',
+              })
+            }
+          } catch {
+            setAlert({
+              type: 'error',
+              message: 'Invalid email or password. Please try again.',
+            })
           }
-          
-          setAlert({
-            type: 'success',
-            message: 'Account created! Please check your email to verify your account.'
-          })
         } else {
-          throw signInError
+          setAlert({
+            type: 'error',
+            message: signInError.message || 'Sign in failed. Please try again.',
+          })
         }
       } else {
         setAlert({
@@ -168,13 +221,19 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <div className="flex justify-center lg:justify-start lg:pl-8">
+              <div className="flex justify-center lg:justify-end lg:pr-8">
                 <div className="w-full max-w-md">
                   <div className="bg-gradient-to-br from-zinc-900/95 to-black/95 backdrop-blur-xl border border-zinc-700/30 rounded-2xl p-8 shadow-2xl hover:shadow-black/50 transition-all duration-300 hover:border-zinc-600/40">
                     
                     <div className="text-center mb-8">
-                      <h3 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-300 mb-3 tracking-tight">Welcome Back</h3>
-                      <p className="text-gray-400 text-base font-medium">Enter your credentials to access API Whispr</p>
+                      <h3 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-300 mb-3 tracking-tight">
+                        {authMode === 'signin' ? 'Welcome Back' : 'Create account'}
+                      </h3>
+                      <p className="text-gray-400 text-base font-medium">
+                        {authMode === 'signin'
+                          ? 'Enter your credentials to access API Whispr'
+                          : 'Enter your email, password, and confirm password to get started'}
+                      </p>
                     </div>
 
                     {alert.message && (
@@ -233,7 +292,7 @@ export default function LoginPage() {
                             id="password"
                             name="password"
                             type={showPassword ? 'text' : 'password'}
-                            autoComplete="current-password"
+                            autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'}
                             required
                             value={formData.password}
                             onChange={handleInputChange}
@@ -242,7 +301,7 @@ export default function LoginPage() {
                                 ? 'border-red-500/50 shadow-lg shadow-red-500/20' 
                                 : 'border-zinc-700/50 hover:border-zinc-600/70 focus:border-zinc-600/80 focus:shadow-lg focus:shadow-white/10'
                             }`}
-                            placeholder="Enter your password"
+                            placeholder={authMode === 'signup' ? 'Choose a password' : 'Enter your password'}
                           />
                           <button
                             type="button"
@@ -258,6 +317,43 @@ export default function LoginPage() {
                         )}
                       </div>
 
+                      {authMode === 'signup' && (
+                        <div>
+                          <label htmlFor="confirmPassword" className="block text-base font-semibold text-gray-200 mb-3">
+                            Confirm password
+                          </label>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-zinc-400" />
+                            <input
+                              id="confirmPassword"
+                              name="confirmPassword"
+                              type={showConfirmPassword ? 'text' : 'password'}
+                              autoComplete="new-password"
+                              required
+                              value={formData.confirmPassword}
+                              onChange={handleInputChange}
+                              className={`w-full pl-11 pr-12 py-4 bg-zinc-900/80 border rounded-xl focus:outline-none transition-all duration-300 text-white placeholder-zinc-400 font-medium ${
+                                fieldErrors.confirmPassword 
+                                  ? 'border-red-500/50 shadow-lg shadow-red-500/20' 
+                                  : 'border-zinc-700/50 hover:border-zinc-600/70 focus:border-zinc-600/80 focus:shadow-lg focus:shadow-white/10'
+                              }`}
+                              placeholder="Confirm your password"
+                            />
+                            <button
+                              type="button"
+                              title={showConfirmPassword ? 'Hide password' : 'Show password'}
+                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors"
+                            >
+                              {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                            </button>
+                          </div>
+                          {fieldErrors.confirmPassword && (
+                            <p className="text-sm text-red-400 mt-2">{fieldErrors.confirmPassword}</p>
+                          )}
+                        </div>
+                      )}
+
                       <button
                         type="submit"
                         disabled={isLoading}
@@ -267,11 +363,11 @@ export default function LoginPage() {
                           {isLoading ? (
                             <>
                               <Loader2 className="h-5 w-5 animate-spin" />
-                              Authenticating...
+                              {authMode === 'signup' ? 'Creating account...' : 'Signing in...'}
                             </>
                           ) : (
                             <>
-                              Sign In to API Whispr
+                              {authMode === 'signup' ? 'Create account' : 'Sign In to API Whispr'}
                               <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
                             </>
                           )}
@@ -282,13 +378,37 @@ export default function LoginPage() {
 
                     <div className="mt-8 text-center space-y-3">
                       <p className="text-sm text-gray-500 font-medium">
-                        New user? Account will be created automatically
+                        {authMode === 'signin' ? (
+                          <>
+                            New to API Whispr?{' '}
+                            <button
+                              type="button"
+                              onClick={() => switchMode('signup')}
+                              className="text-gray-300 hover:text-white underline underline-offset-2 font-medium focus:outline-none focus:text-white rounded px-0.5"
+                            >
+                              Sign up
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            Already have an account?{' '}
+                            <button
+                              type="button"
+                              onClick={() => switchMode('signin')}
+                              className="text-gray-300 hover:text-white underline underline-offset-2 font-medium focus:outline-none focus:text-white rounded px-0.5"
+                            >
+                              Sign in
+                            </button>
+                          </>
+                        )}
                       </p>
-                      <div className="flex justify-center">
-                        <a href="#" className="text-gray-400 hover:text-white transition-colors hover:underline text-sm font-medium focus:outline-none focus:text-white focus:shadow-sm focus:shadow-white/20 rounded px-1 py-0.5">
-                          Forgot password?
-                        </a>
-                      </div>
+                      {authMode === 'signin' && (
+                        <div className="flex justify-center">
+                          <a href="#" className="text-gray-400 hover:text-white transition-colors hover:underline text-sm font-medium focus:outline-none focus:text-white focus:shadow-sm focus:shadow-white/20 rounded px-1 py-0.5">
+                            Forgot password?
+                          </a>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
